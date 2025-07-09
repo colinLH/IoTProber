@@ -1,0 +1,4345 @@
+{
+    "code": 200,
+    "status": "OK",
+    "result": {
+        "query": "(labels: ipv6) and labels = web.control-panel.hosting",
+        "total": 14529,
+        "duration": 88,
+        "hits": [
+            {
+                "ip": "2404:c6c0:0:0:0:0:0:78",
+                "whois": {
+                    "network": {
+                        "name": "MAT BAO WS JOINT STOCK COMPANY"
+                    }
+                },
+                "location": {
+                    "province": "Hanoi",
+                    "city": "Hanoi",
+                    "coordinates": {
+                        "latitude": 21.0245,
+                        "longitude": 105.84117
+                    }
+                },
+                "services": [
+                    {
+                        "transport_protocol": "TCP",
+                        "service_name": "HTTP",
+                        "extended_service_name": "HTTP",
+                        "port": 80
+                    },
+                    {
+                        "tls": {
+                            "presented_chain": [
+                                {
+                                    "subject_dn": "C=GB, ST=Greater Manchester, L=Salford, O=Sectigo Limited, CN=Sectigo RSA Domain Validation Secure Server CA",
+                                    "issuer_dn": "C=US, ST=New Jersey, L=Jersey City, O=The USERTRUST Network, CN=USERTrust RSA Certification Authority"
+                                },
+                                {
+                                    "subject_dn": "C=US, ST=New Jersey, L=Jersey City, O=The USERTRUST Network, CN=USERTrust RSA Certification Authority",
+                                    "issuer_dn": "C=GB, ST=Greater Manchester, L=Salford, O=Comodo CA Limited, CN=AAA Certificate Services"
+                                },
+                                {
+                                    "subject_dn": "C=GB, ST=Greater Manchester, L=Salford, O=Comodo CA Limited, CN=AAA Certificate Services",
+                                    "issuer_dn": "C=GB, ST=Greater Manchester, L=Salford, O=Comodo CA Limited, CN=AAA Certificate Services"
+                                }
+                            ],
+                            "cipher_selected": "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256",
+                            "version_selected": "TLSv1_2"
+                        },
+                        "transport_protocol": "TCP",
+                        "extended_service_name": "HTTPS",
+                        "service_name": "HTTP",
+                        "port": 443
+                    }
+                ]
+            },
+            {
+                "ip": "2a01:4f8:1c1e:b77f:0:0:0:1",
+                "whois": {
+                    "organization": {
+                        "address": "Industriestrasse 25\\nD-91710\\nGunzenhausen\\nGERMANY",
+                        "name": "Hetzner Online GmbH"
+                    },
+                    "network": {
+                        "name": "Hetzner Online GmbH"
+                    }
+                },
+                "location": {
+                    "province": "Bavaria",
+                    "city": "N\u00fcrnberg",
+                    "coordinates": {
+                        "latitude": 49.45421,
+                        "longitude": 11.07752
+                    }
+                },
+                "services": [
+                    {
+                        "transport_protocol": "TCP",
+                        "extended_service_name": "HTTP",
+                        "service_name": "HTTP",
+                        "port": 80
+                    },
+                    {
+                        "transport_protocol": "TCP",
+                        "tls": {
+                            "presented_chain": [
+                                {
+                                    "subject_dn": "C=US, O=Let's Encrypt, CN=R11",
+                                    "issuer_dn": "C=US, O=Internet Security Research Group, CN=ISRG Root X1"
+                                }
+                            ],
+                            "cipher_selected": "TLS_CHACHA20_POLY1305_SHA256",
+                            "version_selected": "TLSv1_3"
+                        },
+                        "extended_service_name": "HTTPS",
+                        "service_name": "HTTP",
+                        "port": 443
+                    }
+                ]
+            },
+            {
+                "ip": "2607:ff50:0:4c:0:0:2:117",
+                "whois": {
+                    "organization": {
+                        "name": "SBA Edge, LLC"
+                    },
+                    "network": {
+                        "name": "SBA Edge, LLC"
+                    }
+                },
+                "location": {
+                    "province": "Illinois",
+                    "city": "Chicago",
+                    "coordinates": {
+                        "latitude": 41.85003,
+                        "longitude": -87.65005
+                    }
+                },
+                "services": [
+                    {
+                        "transport_protocol": "TCP",
+                        "extended_service_name": "HTTP",
+                        "service_name": "HTTP",
+                        "port": 80
+                    },
+                    {
+                        "tls": {
+                            "presented_chain": [
+                                {
+                                    "subject_dn": "C=US, O=Let's Encrypt, CN=R11",
+                                    "issuer_dn": "C=US, O=Internet Security Research Group, CN=ISRG Root X1"
+                                }
+                            ],
+                            "cipher_selected": "TLS_AES_256_GCM_SHA384",
+                            "version_selected": "TLSv1_3"
+                        },
+                        "transport_protocol": "TCP",
+                        "extended_service_name": "HTTPS",
+                        "service_name": "HTTP",
+                        "port": 443
+                    }
+                ]
+            },
+            {
+                "ip": "2a01:239:20a:3100:0:0:0:1",
+                "location": {
+                    "province": "State of Berlin",
+                    "city": "Berlin",
+                    "coordinates": {
+                        "latitude": 52.52437,
+                        "longitude": 13.41053
+                    }
+                },
+                "whois": {
+                    "organization": {
+                        "address": "Otto-Ostrowski-Stra\u00dfe 7\\n10249\\nBerlin\\nGERMANY",
+                        "name": "Strato GmbH"
+                    },
+                    "network": {
+                        "name": "IONOS SE"
+                    }
+                },
+                "services": [
+                    {
+                        "transport_protocol": "TCP",
+                        "service_name": "HTTP",
+                        "extended_service_name": "HTTP",
+                        "port": 80
+                    },
+                    {
+                        "tls": {
+                            "presented_chain": [
+                                {
+                                    "subject_dn": "C=US, O=Let's Encrypt, CN=R10",
+                                    "issuer_dn": "C=US, O=Internet Security Research Group, CN=ISRG Root X1"
+                                }
+                            ],
+                            "cipher_selected": "TLS_AES_256_GCM_SHA384",
+                            "version_selected": "TLSv1_3"
+                        },
+                        "transport_protocol": "TCP",
+                        "service_name": "HTTP",
+                        "extended_service_name": "HTTPS",
+                        "port": 443
+                    }
+                ]
+            },
+            {
+                "ip": "2a01:239:263:7c00:0:0:0:1",
+                "whois": {
+                    "organization": {
+                        "address": "Otto-Ostrowski-Stra\u00dfe 7\\n10249\\nBerlin\\nGERMANY",
+                        "name": "Strato GmbH"
+                    },
+                    "network": {
+                        "name": "IONOS SE"
+                    }
+                },
+                "location": {
+                    "province": "State of Berlin",
+                    "city": "Berlin",
+                    "coordinates": {
+                        "latitude": 52.52437,
+                        "longitude": 13.41053
+                    }
+                },
+                "services": [
+                    {
+                        "transport_protocol": "TCP",
+                        "extended_service_name": "HTTP",
+                        "service_name": "HTTP",
+                        "port": 80
+                    },
+                    {
+                        "tls": {
+                            "presented_chain": [
+                                {
+                                    "subject_dn": "C=US, O=Let's Encrypt, CN=R10",
+                                    "issuer_dn": "C=US, O=Internet Security Research Group, CN=ISRG Root X1"
+                                }
+                            ],
+                            "cipher_selected": "TLS_AES_256_GCM_SHA384",
+                            "version_selected": "TLSv1_3"
+                        },
+                        "transport_protocol": "TCP",
+                        "extended_service_name": "HTTPS",
+                        "service_name": "HTTP",
+                        "port": 443
+                    }
+                ]
+            },
+            {
+                "ip": "2a01:488:66:1000:b01c:c6f:0:1",
+                "whois": {
+                    "organization": {
+                        "address": "c/o WeWork Wallarkaden\\n50674\\nK\u00f6ln\\nGERMANY",
+                        "name": "Host Europe GmbH"
+                    },
+                    "network": {
+                        "name": "Host Europe GmbH"
+                    }
+                },
+                "location": {
+                    "province": "North Rhine-Westphalia",
+                    "city": "Aachen",
+                    "coordinates": {
+                        "latitude": 50.77664,
+                        "longitude": 6.08342
+                    }
+                },
+                "services": [
+                    {
+                        "transport_protocol": "TCP",
+                        "service_name": "HTTP",
+                        "extended_service_name": "HTTP",
+                        "port": 80
+                    },
+                    {
+                        "tls": {
+                            "presented_chain": [
+                                {
+                                    "subject_dn": "C=US, O=Let's Encrypt, CN=R10",
+                                    "issuer_dn": "C=US, O=Internet Security Research Group, CN=ISRG Root X1"
+                                }
+                            ],
+                            "cipher_selected": "TLS_CHACHA20_POLY1305_SHA256",
+                            "version_selected": "TLSv1_3"
+                        },
+                        "transport_protocol": "TCP",
+                        "extended_service_name": "HTTPS",
+                        "service_name": "HTTP",
+                        "port": 443
+                    }
+                ]
+            },
+            {
+                "ip": "2001:4ba0:92f3:26:0:0:0:181",
+                "location": {
+                    "province": "North Rhine-Westphalia",
+                    "city": "Neuss",
+                    "coordinates": {
+                        "latitude": 51.19807,
+                        "longitude": 6.68504
+                    }
+                },
+                "whois": {
+                    "organization": {
+                        "address": "Joachim-Erwin-Platz 3\\n40212\\nD\u00fcsseldorf\\nGERMANY",
+                        "name": "WIIT AG"
+                    },
+                    "network": {
+                        "name": "WIIT AG"
+                    }
+                },
+                "services": [
+                    {
+                        "transport_protocol": "TCP",
+                        "extended_service_name": "HTTP",
+                        "service_name": "HTTP",
+                        "port": 80
+                    },
+                    {
+                        "tls": {
+                            "presented_chain": [
+                                {
+                                    "subject_dn": "C=US, O=Let's Encrypt, CN=R10",
+                                    "issuer_dn": "C=US, O=Internet Security Research Group, CN=ISRG Root X1"
+                                }
+                            ],
+                            "cipher_selected": "TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384",
+                            "version_selected": "TLSv1_2"
+                        },
+                        "transport_protocol": "TCP",
+                        "extended_service_name": "HTTPS",
+                        "service_name": "HTTP",
+                        "port": 443
+                    }
+                ]
+            },
+            {
+                "ip": "2a01:4f8:2191:2f55:0:0:0:c",
+                "location": {
+                    "province": "Saxony",
+                    "city": "Falkenstein",
+                    "coordinates": {
+                        "latitude": 50.47788,
+                        "longitude": 12.37129
+                    }
+                },
+                "whois": {
+                    "organization": {
+                        "address": "Industriestrasse 25\\nD-91710\\nGunzenhausen\\nGERMANY",
+                        "name": "Hetzner Online GmbH"
+                    },
+                    "network": {
+                        "name": "HOS-156690"
+                    }
+                },
+                "services": [
+                    {
+                        "transport_protocol": "TCP",
+                        "extended_service_name": "HTTP",
+                        "service_name": "HTTP",
+                        "port": 80
+                    },
+                    {
+                        "tls": {
+                            "presented_chain": [
+                                {
+                                    "subject_dn": "C=US, O=Let's Encrypt, CN=E5",
+                                    "issuer_dn": "C=US, O=Internet Security Research Group, CN=ISRG Root X1"
+                                }
+                            ],
+                            "cipher_selected": "TLS_CHACHA20_POLY1305_SHA256",
+                            "version_selected": "TLSv1_3"
+                        },
+                        "transport_protocol": "TCP",
+                        "extended_service_name": "HTTPS",
+                        "service_name": "HTTP",
+                        "port": 443
+                    }
+                ]
+            },
+            {
+                "ip": "2a01:239:2bb:9100:0:0:0:1",
+                "whois": {
+                    "organization": {
+                        "address": "Otto-Ostrowski-Stra\u00dfe 7\\n10249\\nBerlin\\nGERMANY",
+                        "name": "Strato GmbH"
+                    },
+                    "network": {
+                        "name": "IONOS SE"
+                    }
+                },
+                "location": {
+                    "province": "State of Berlin",
+                    "city": "Berlin",
+                    "coordinates": {
+                        "latitude": 52.52437,
+                        "longitude": 13.41053
+                    }
+                },
+                "services": [
+                    {
+                        "transport_protocol": "TCP",
+                        "service_name": "HTTP",
+                        "extended_service_name": "HTTP",
+                        "port": 80
+                    },
+                    {
+                        "tls": {
+                            "presented_chain": [
+                                {
+                                    "subject_dn": "C=US, O=Let's Encrypt, CN=R11",
+                                    "issuer_dn": "C=US, O=Internet Security Research Group, CN=ISRG Root X1"
+                                }
+                            ],
+                            "cipher_selected": "TLS_AES_256_GCM_SHA384",
+                            "version_selected": "TLSv1_3"
+                        },
+                        "transport_protocol": "TCP",
+                        "extended_service_name": "HTTPS",
+                        "service_name": "HTTP",
+                        "port": 443
+                    }
+                ]
+            },
+            {
+                "ip": "2a01:4f8:e0:1e9e:0:0:0:6",
+                "location": {
+                    "province": "Bavaria",
+                    "city": "N\u00fcrnberg",
+                    "coordinates": {
+                        "latitude": 49.45421,
+                        "longitude": 11.07752
+                    }
+                },
+                "whois": {
+                    "organization": {
+                        "address": "Industriestrasse 25\\nD-91710\\nGunzenhausen\\nGERMANY",
+                        "name": "Hetzner Online GmbH"
+                    },
+                    "network": {
+                        "name": "HOS-167489"
+                    }
+                },
+                "services": [
+                    {
+                        "transport_protocol": "TCP",
+                        "extended_service_name": "HTTP",
+                        "service_name": "HTTP",
+                        "port": 80
+                    },
+                    {
+                        "tls": {
+                            "presented_chain": [
+                                {
+                                    "subject_dn": "C=US, O=Let's Encrypt, CN=R11",
+                                    "issuer_dn": "C=US, O=Internet Security Research Group, CN=ISRG Root X1"
+                                }
+                            ],
+                            "cipher_selected": "TLS_CHACHA20_POLY1305_SHA256",
+                            "version_selected": "TLSv1_3"
+                        },
+                        "transport_protocol": "TCP",
+                        "extended_service_name": "HTTPS",
+                        "service_name": "HTTP",
+                        "port": 443
+                    }
+                ]
+            },
+            {
+                "ip": "2a01:239:265:c500:0:0:0:1",
+                "whois": {
+                    "organization": {
+                        "address": "Otto-Ostrowski-Stra\u00dfe 7\\n10249\\nBerlin\\nGERMANY",
+                        "name": "Strato GmbH"
+                    },
+                    "network": {
+                        "name": "IONOS SE"
+                    }
+                },
+                "location": {
+                    "province": "State of Berlin",
+                    "city": "Berlin",
+                    "coordinates": {
+                        "latitude": 52.52437,
+                        "longitude": 13.41053
+                    }
+                },
+                "services": [
+                    {
+                        "transport_protocol": "TCP",
+                        "service_name": "HTTP",
+                        "extended_service_name": "HTTP",
+                        "port": 80
+                    },
+                    {
+                        "tls": {
+                            "presented_chain": [
+                                {
+                                    "subject_dn": "C=US, O=Let's Encrypt, CN=R10",
+                                    "issuer_dn": "C=US, O=Internet Security Research Group, CN=ISRG Root X1"
+                                }
+                            ],
+                            "cipher_selected": "TLS_CHACHA20_POLY1305_SHA256",
+                            "version_selected": "TLSv1_3"
+                        },
+                        "transport_protocol": "TCP",
+                        "extended_service_name": "HTTPS",
+                        "service_name": "HTTP",
+                        "port": 443
+                    }
+                ]
+            },
+            {
+                "ip": "2a01:238:420b:1c00:dead:beef:dead:5",
+                "whois": {
+                    "organization": {
+                        "address": "Otto-Ostrowski-Stra\u00dfe 7\\n10249\\nBerlin\\nGERMANY",
+                        "name": "Strato GmbH"
+                    },
+                    "network": {
+                        "name": "STRATO AG"
+                    }
+                },
+                "location": {
+                    "province": "State of Berlin",
+                    "city": "Berlin",
+                    "coordinates": {
+                        "latitude": 52.52437,
+                        "longitude": 13.41053
+                    }
+                },
+                "services": [
+                    {
+                        "transport_protocol": "TCP",
+                        "extended_service_name": "HTTP",
+                        "service_name": "HTTP",
+                        "port": 80
+                    },
+                    {
+                        "tls": {
+                            "presented_chain": [
+                                {
+                                    "subject_dn": "C=US, O=Let's Encrypt, CN=R10",
+                                    "issuer_dn": "C=US, O=Internet Security Research Group, CN=ISRG Root X1"
+                                }
+                            ],
+                            "cipher_selected": "TLS_AES_256_GCM_SHA384",
+                            "version_selected": "TLSv1_3"
+                        },
+                        "transport_protocol": "TCP",
+                        "extended_service_name": "HTTPS",
+                        "service_name": "HTTP",
+                        "port": 443
+                    }
+                ]
+            },
+            {
+                "ip": "2a01:7e0:0:134:0:0:0:3001",
+                "location": {
+                    "province": "Hesse",
+                    "city": "Frankfurt am Main",
+                    "coordinates": {
+                        "latitude": 50.11552,
+                        "longitude": 8.68417
+                    }
+                },
+                "whois": {
+                    "organization": {
+                        "address": "Kruppstr. 105\\n60388\\nFrankfurt am Main\\nGERMANY",
+                        "name": "firstcolo GmbH"
+                    },
+                    "network": {
+                        "name": "firstcolo GmbH"
+                    }
+                },
+                "services": [
+                    {
+                        "transport_protocol": "TCP",
+                        "service_name": "HTTP",
+                        "extended_service_name": "HTTP",
+                        "port": 80
+                    },
+                    {
+                        "tls": {
+                            "presented_chain": [
+                                {
+                                    "subject_dn": "C=GB, ST=Greater Manchester, L=Salford, O=Sectigo Limited, CN=Sectigo RSA Domain Validation Secure Server CA",
+                                    "issuer_dn": "C=US, ST=New Jersey, L=Jersey City, O=The USERTRUST Network, CN=USERTrust RSA Certification Authority"
+                                },
+                                {
+                                    "subject_dn": "C=US, ST=New Jersey, L=Jersey City, O=The USERTRUST Network, CN=USERTrust RSA Certification Authority",
+                                    "issuer_dn": "C=GB, ST=Greater Manchester, L=Salford, O=Comodo CA Limited, CN=AAA Certificate Services"
+                                }
+                            ],
+                            "cipher_selected": "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256",
+                            "version_selected": "TLSv1_2"
+                        },
+                        "transport_protocol": "TCP",
+                        "extended_service_name": "HTTPS",
+                        "service_name": "HTTP",
+                        "port": 443
+                    }
+                ]
+            },
+            {
+                "ip": "2a01:7c8:bb03:43:5054:ff:fe1a:e8d6",
+                "location": {
+                    "province": "Flevoland",
+                    "city": "Lelystad",
+                    "coordinates": {
+                        "latitude": 52.50833,
+                        "longitude": 5.475
+                    }
+                },
+                "whois": {
+                    "organization": {
+                        "address": "Achtseweg Zuid 241 B\\n5651GW\\nEindhoven\\nNETHERLANDS",
+                        "name": "Signet B.V."
+                    },
+                    "network": {
+                        "name": "Signet B.V."
+                    }
+                },
+                "services": [
+                    {
+                        "transport_protocol": "TCP",
+                        "extended_service_name": "HTTP",
+                        "service_name": "HTTP",
+                        "port": 80
+                    },
+                    {
+                        "tls": {
+                            "presented_chain": [
+                                {
+                                    "subject_dn": "C=GB, ST=Greater Manchester, L=Salford, O=Sectigo Limited, CN=Sectigo RSA Domain Validation Secure Server CA",
+                                    "issuer_dn": "C=US, ST=New Jersey, L=Jersey City, O=The USERTRUST Network, CN=USERTrust RSA Certification Authority"
+                                }
+                            ],
+                            "cipher_selected": "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256",
+                            "version_selected": "TLSv1_2"
+                        },
+                        "transport_protocol": "TCP",
+                        "service_name": "HTTP",
+                        "extended_service_name": "HTTPS",
+                        "port": 443
+                    }
+                ]
+            },
+            {
+                "ip": "2a00:1169:111:8f00:0:0:0:0",
+                "whois": {
+                    "organization": {
+                        "address": "c/o WeWork Wallarkaden\\n50674\\nK\u00f6ln\\nGERMANY",
+                        "name": "Host Europe GmbH"
+                    },
+                    "network": {
+                        "name": "Host Europe GmbH"
+                    }
+                },
+                "location": {
+                    "province": "Grand Est",
+                    "city": "Strasbourg",
+                    "coordinates": {
+                        "latitude": 48.58392,
+                        "longitude": 7.74553
+                    }
+                },
+                "services": [
+                    {
+                        "transport_protocol": "TCP",
+                        "service_name": "HTTP",
+                        "extended_service_name": "HTTP",
+                        "port": 80
+                    },
+                    {
+                        "tls": {
+                            "presented_chain": [
+                                {
+                                    "subject_dn": "C=US, O=Let's Encrypt, CN=R11",
+                                    "issuer_dn": "C=US, O=Internet Security Research Group, CN=ISRG Root X1"
+                                }
+                            ],
+                            "cipher_selected": "TLS_AES_256_GCM_SHA384",
+                            "version_selected": "TLSv1_3"
+                        },
+                        "transport_protocol": "TCP",
+                        "service_name": "HTTP",
+                        "extended_service_name": "HTTPS",
+                        "port": 443
+                    }
+                ]
+            },
+            {
+                "ip": "2001:1af8:8110:a00c:2:0:0:169",
+                "whois": {
+                    "organization": {
+                        "address": "Postbus 93054\\n1090BB\\nAmsterdam\\nNETHERLANDS",
+                        "name": "LeaseWeb Netherlands B.V."
+                    },
+                    "network": {
+                        "name": "LeaseWeb Netherlands B.V."
+                    }
+                },
+                "location": {
+                    "province": "North Holland",
+                    "coordinates": {
+                        "latitude": 52.37403,
+                        "longitude": 4.88969
+                    },
+                    "city": "Amsterdam"
+                },
+                "services": [
+                    {
+                        "transport_protocol": "TCP",
+                        "extended_service_name": "HTTP",
+                        "service_name": "HTTP",
+                        "port": 80
+                    },
+                    {
+                        "tls": {
+                            "presented_chain": [
+                                {
+                                    "subject_dn": "C=US, O=Let's Encrypt, CN=R11",
+                                    "issuer_dn": "C=US, O=Internet Security Research Group, CN=ISRG Root X1"
+                                }
+                            ],
+                            "cipher_selected": "TLS_AES_256_GCM_SHA384",
+                            "version_selected": "TLSv1_3"
+                        },
+                        "transport_protocol": "TCP",
+                        "extended_service_name": "HTTPS",
+                        "service_name": "HTTP",
+                        "port": 443
+                    }
+                ]
+            },
+            {
+                "ip": "2a13:3000:da7a:1116:0:0:0:1",
+                "location": {
+                    "province": "Madrid",
+                    "city": "Madrid",
+                    "coordinates": {
+                        "latitude": 40.4165,
+                        "longitude": -3.70256
+                    }
+                },
+                "whois": {
+                    "organization": {
+                        "address": "N-432, Km 429, Nave n\u00ba2\\n18230\\nAtarfe (Granada)\\nSPAIN",
+                        "name": "Felipe Canizares Navarro trading as DMNTR NETWORK SOLUTIONS"
+                    },
+                    "network": {
+                        "name": "Felipe Canizares Navarro trading as DMNTR NETWORK SOLUTIONS"
+                    }
+                },
+                "services": [
+                    {
+                        "transport_protocol": "TCP",
+                        "extended_service_name": "HTTP",
+                        "service_name": "HTTP",
+                        "port": 80
+                    },
+                    {
+                        "tls": {
+                            "presented_chain": [
+                                {
+                                    "subject_dn": "C=US, O=Let's Encrypt, CN=R10",
+                                    "issuer_dn": "C=US, O=Internet Security Research Group, CN=ISRG Root X1"
+                                }
+                            ],
+                            "cipher_selected": "TLS_AES_256_GCM_SHA384",
+                            "version_selected": "TLSv1_3"
+                        },
+                        "transport_protocol": "TCP",
+                        "extended_service_name": "HTTPS",
+                        "service_name": "HTTP",
+                        "port": 443
+                    }
+                ]
+            },
+            {
+                "ip": "2a01:4f8:110:42e4:0:0:0:2",
+                "whois": {
+                    "organization": {
+                        "address": "Industriestrasse 25\\nD-91710\\nGunzenhausen\\nGERMANY",
+                        "name": "Hetzner Online GmbH"
+                    },
+                    "network": {
+                        "name": "HOS-442832"
+                    }
+                },
+                "location": {
+                    "province": "Saxony",
+                    "city": "Falkenstein",
+                    "coordinates": {
+                        "latitude": 50.47788,
+                        "longitude": 12.37129
+                    }
+                },
+                "services": [
+                    {
+                        "transport_protocol": "TCP",
+                        "service_name": "HTTP",
+                        "extended_service_name": "HTTP",
+                        "port": 80
+                    },
+                    {
+                        "tls": {
+                            "presented_chain": [
+                                {
+                                    "subject_dn": "C=US, O=Let's Encrypt, CN=R11",
+                                    "issuer_dn": "C=US, O=Internet Security Research Group, CN=ISRG Root X1"
+                                }
+                            ],
+                            "cipher_selected": "TLS_CHACHA20_POLY1305_SHA256",
+                            "version_selected": "TLSv1_3"
+                        },
+                        "transport_protocol": "TCP",
+                        "service_name": "HTTP",
+                        "extended_service_name": "HTTPS",
+                        "port": 443
+                    }
+                ]
+            },
+            {
+                "ip": "2a01:239:39e:1d00:0:0:0:1",
+                "location": {
+                    "province": "State of Berlin",
+                    "city": "Berlin",
+                    "coordinates": {
+                        "latitude": 52.52437,
+                        "longitude": 13.41053
+                    }
+                },
+                "whois": {
+                    "organization": {
+                        "address": "Otto-Ostrowski-Stra\u00dfe 7\\n10249\\nBerlin\\nGERMANY",
+                        "name": "Strato GmbH"
+                    },
+                    "network": {
+                        "name": "IONOS SE"
+                    }
+                },
+                "services": [
+                    {
+                        "transport_protocol": "TCP",
+                        "extended_service_name": "HTTP",
+                        "service_name": "HTTP",
+                        "port": 80
+                    },
+                    {
+                        "transport_protocol": "TCP",
+                        "tls": {
+                            "cipher_selected": "TLS_CHACHA20_POLY1305_SHA256",
+                            "version_selected": "TLSv1_3"
+                        },
+                        "extended_service_name": "HTTPS",
+                        "service_name": "HTTP",
+                        "port": 443
+                    }
+                ]
+            },
+            {
+                "ip": "2a0e:7280:0:188:59:777:0:1",
+                "whois": {
+                    "organization": {
+                        "address": "Lavendelheide 21-108\\n9202PD\\nDrachten\\nNETHERLANDS",
+                        "name": "Cloud86 B.V."
+                    },
+                    "network": {
+                        "name": "Cloud86 B.V."
+                    }
+                },
+                "location": {
+                    "province": "Flevoland",
+                    "city": "Lelystad",
+                    "coordinates": {
+                        "latitude": 52.50833,
+                        "longitude": 5.475
+                    }
+                },
+                "services": [
+                    {
+                        "transport_protocol": "TCP",
+                        "extended_service_name": "HTTP",
+                        "service_name": "HTTP",
+                        "port": 80
+                    },
+                    {
+                        "transport_protocol": "TCP",
+                        "tls": {
+                            "cipher_selected": "TLS_CHACHA20_POLY1305_SHA256",
+                            "version_selected": "TLSv1_3"
+                        },
+                        "extended_service_name": "HTTPS",
+                        "service_name": "HTTP",
+                        "port": 443
+                    }
+                ]
+            },
+            {
+                "ip": "2a01:4f8:120:71cf:0:0:0:5",
+                "whois": {
+                    "organization": {
+                        "address": "Industriestrasse 25\\nD-91710\\nGunzenhausen\\nGERMANY",
+                        "name": "Hetzner Online GmbH"
+                    },
+                    "network": {
+                        "name": "HOS-883971"
+                    }
+                },
+                "location": {
+                    "province": "Saxony",
+                    "city": "Falkenstein",
+                    "coordinates": {
+                        "latitude": 50.47788,
+                        "longitude": 12.37129
+                    }
+                },
+                "services": [
+                    {
+                        "transport_protocol": "TCP",
+                        "extended_service_name": "HTTP",
+                        "service_name": "HTTP",
+                        "port": 80
+                    },
+                    {
+                        "tls": {
+                            "presented_chain": [
+                                {
+                                    "subject_dn": "C=US, O=Let's Encrypt, CN=R10",
+                                    "issuer_dn": "C=US, O=Internet Security Research Group, CN=ISRG Root X1"
+                                }
+                            ],
+                            "cipher_selected": "TLS_CHACHA20_POLY1305_SHA256",
+                            "version_selected": "TLSv1_3"
+                        },
+                        "transport_protocol": "TCP",
+                        "extended_service_name": "HTTPS",
+                        "service_name": "HTTP",
+                        "port": 443
+                    }
+                ]
+            },
+            {
+                "ip": "2a01:7c8:d001:c8:0:0:0:1",
+                "whois": {
+                    "organization": {
+                        "address": "Achtseweg Zuid 241 B\\n5651GW\\nEindhoven\\nNETHERLANDS",
+                        "name": "Signet B.V."
+                    },
+                    "network": {
+                        "name": "Signet B.V."
+                    }
+                },
+                "location": {
+                    "province": "North Brabant",
+                    "city": "Oosterhout",
+                    "coordinates": {
+                        "latitude": 51.645,
+                        "longitude": 4.85972
+                    }
+                },
+                "services": [
+                    {
+                        "transport_protocol": "TCP",
+                        "extended_service_name": "HTTP",
+                        "service_name": "HTTP",
+                        "port": 80
+                    },
+                    {
+                        "transport_protocol": "TCP",
+                        "tls": {
+                            "presented_chain": [
+                                {
+                                    "subject_dn": "C=US, O=Let's Encrypt, CN=R10",
+                                    "issuer_dn": "C=US, O=Internet Security Research Group, CN=ISRG Root X1"
+                                }
+                            ],
+                            "cipher_selected": "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256",
+                            "version_selected": "TLSv1_2"
+                        },
+                        "extended_service_name": "HTTPS",
+                        "service_name": "HTTP",
+                        "port": 443
+                    }
+                ]
+            },
+            {
+                "ip": "2a01:7c8:fff6:4:0:0:0:31",
+                "whois": {
+                    "organization": {
+                        "address": "Achtseweg Zuid 241 B\\n5651GW\\nEindhoven\\nNETHERLANDS",
+                        "name": "Signet B.V."
+                    },
+                    "network": {
+                        "name": "TransIP BV"
+                    }
+                },
+                "location": {
+                    "province": "North Holland",
+                    "city": "Aalsmeer",
+                    "coordinates": {
+                        "latitude": 52.25917,
+                        "longitude": 4.75972
+                    }
+                },
+                "services": [
+                    {
+                        "transport_protocol": "TCP",
+                        "extended_service_name": "HTTP",
+                        "service_name": "HTTP",
+                        "port": 80
+                    },
+                    {
+                        "tls": {
+                            "presented_chain": [
+                                {
+                                    "subject_dn": "C=US, O=Let's Encrypt, CN=R10",
+                                    "issuer_dn": "C=US, O=Internet Security Research Group, CN=ISRG Root X1"
+                                }
+                            ],
+                            "cipher_selected": "TLS_AES_256_GCM_SHA384",
+                            "version_selected": "TLSv1_3"
+                        },
+                        "transport_protocol": "TCP",
+                        "extended_service_name": "HTTPS",
+                        "service_name": "HTTP",
+                        "port": 443
+                    }
+                ]
+            },
+            {
+                "ip": "2001:8d8:96b:d300:0:0:28:3f88",
+                "whois": {
+                    "organization": {
+                        "address": "Hinterm Hauptbahnhof 5\\n76137\\nKarlsruhe\\nGERMANY",
+                        "name": "IONOS SE"
+                    },
+                    "network": {
+                        "name": "1&1 IONOS SE"
+                    }
+                },
+                "location": {
+                    "province": "Baden-Wurttemberg",
+                    "coordinates": {
+                        "latitude": 49.00937,
+                        "longitude": 8.40444
+                    },
+                    "city": "Karlsruhe"
+                },
+                "services": [
+                    {
+                        "transport_protocol": "TCP",
+                        "service_name": "HTTP",
+                        "extended_service_name": "HTTP",
+                        "port": 80
+                    },
+                    {
+                        "transport_protocol": "TCP",
+                        "tls": {
+                            "cipher_selected": "TLS_AES_256_GCM_SHA384",
+                            "version_selected": "TLSv1_3"
+                        },
+                        "extended_service_name": "HTTPS",
+                        "service_name": "HTTP",
+                        "port": 443
+                    }
+                ]
+            },
+            {
+                "ip": "2001:1b60:3:221:1015:0:0:1",
+                "whois": {
+                    "organization": {
+                        "address": "Neuwerkstr. 45/46\\n99084\\nErfurt\\nGERMANY",
+                        "name": "Keyweb AG"
+                    },
+                    "network": {
+                        "name": "Keyweb AG"
+                    }
+                },
+                "location": {
+                    "province": "Thuringia",
+                    "city": "Weimar",
+                    "coordinates": {
+                        "latitude": 50.9803,
+                        "longitude": 11.32903
+                    }
+                },
+                "services": [
+                    {
+                        "transport_protocol": "TCP",
+                        "extended_service_name": "HTTP",
+                        "service_name": "HTTP",
+                        "port": 80
+                    },
+                    {
+                        "transport_protocol": "TCP",
+                        "tls": {
+                            "presented_chain": [
+                                {
+                                    "subject_dn": "C=US, O=Let's Encrypt, CN=R11",
+                                    "issuer_dn": "C=US, O=Internet Security Research Group, CN=ISRG Root X1"
+                                }
+                            ],
+                            "cipher_selected": "TLS_AES_256_GCM_SHA384",
+                            "version_selected": "TLSv1_3"
+                        },
+                        "extended_service_name": "HTTPS",
+                        "service_name": "HTTP",
+                        "port": 443
+                    }
+                ]
+            },
+            {
+                "ip": "2a01:4f8:c0c:41fa:0:0:0:1",
+                "whois": {
+                    "organization": {
+                        "address": "Industriestrasse 25\\nD-91710\\nGunzenhausen\\nGERMANY",
+                        "name": "Hetzner Online GmbH"
+                    },
+                    "network": {
+                        "name": "Hetzner Online GmbH"
+                    }
+                },
+                "location": {
+                    "province": "Bavaria",
+                    "city": "N\u00fcrnberg",
+                    "coordinates": {
+                        "latitude": 49.45421,
+                        "longitude": 11.07752
+                    }
+                },
+                "services": [
+                    {
+                        "transport_protocol": "TCP",
+                        "extended_service_name": "HTTP",
+                        "service_name": "HTTP",
+                        "port": 80
+                    },
+                    {
+                        "tls": {
+                            "presented_chain": [
+                                {
+                                    "subject_dn": "C=US, O=Let's Encrypt, CN=R10",
+                                    "issuer_dn": "C=US, O=Internet Security Research Group, CN=ISRG Root X1"
+                                }
+                            ],
+                            "cipher_selected": "TLS_CHACHA20_POLY1305_SHA256",
+                            "version_selected": "TLSv1_3"
+                        },
+                        "transport_protocol": "TCP",
+                        "extended_service_name": "HTTPS",
+                        "service_name": "HTTP",
+                        "port": 443
+                    }
+                ]
+            },
+            {
+                "ip": "2a02:788:10c:300:0:0:85:1",
+                "whois": {
+                    "organization": {
+                        "address": "Semperstrasse 11\\nD-45138 Essen",
+                        "name": "Datenfalke, Falco Kleinschmidt"
+                    },
+                    "network": {
+                        "name": "Datenfalke, Falco Kleinschmidt"
+                    }
+                },
+                "location": {
+                    "province": "Baden-Wurttemberg",
+                    "city": "Karlsruhe",
+                    "coordinates": {
+                        "latitude": 49.00937,
+                        "longitude": 8.40444
+                    }
+                },
+                "services": [
+                    {
+                        "transport_protocol": "TCP",
+                        "extended_service_name": "HTTP",
+                        "service_name": "HTTP",
+                        "port": 80
+                    },
+                    {
+                        "tls": {
+                            "presented_chain": [
+                                {
+                                    "subject_dn": "CN=vps022.server001.datenfalke.biz",
+                                    "issuer_dn": "C=US, O=Let's Encrypt, CN=E6"
+                                },
+                                {
+                                    "subject_dn": "C=US, O=Let's Encrypt, CN=E6",
+                                    "issuer_dn": "C=US, O=Internet Security Research Group, CN=ISRG Root X1"
+                                }
+                            ],
+                            "cipher_selected": "TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384",
+                            "version_selected": "TLSv1_2"
+                        },
+                        "transport_protocol": "TCP",
+                        "extended_service_name": "HTTPS",
+                        "service_name": "HTTP",
+                        "port": 443
+                    }
+                ]
+            },
+            {
+                "ip": "2a01:4f8:1c0c:718b:0:0:0:1",
+                "location": {
+                    "province": "Bavaria",
+                    "city": "N\u00fcrnberg",
+                    "coordinates": {
+                        "latitude": 49.45421,
+                        "longitude": 11.07752
+                    }
+                },
+                "whois": {
+                    "organization": {
+                        "address": "Industriestrasse 25\\nD-91710\\nGunzenhausen\\nGERMANY",
+                        "name": "Hetzner Online GmbH"
+                    },
+                    "network": {
+                        "name": "Hetzner Online GmbH"
+                    }
+                },
+                "services": [
+                    {
+                        "transport_protocol": "TCP",
+                        "extended_service_name": "HTTP",
+                        "service_name": "HTTP",
+                        "port": 80
+                    },
+                    {
+                        "tls": {
+                            "presented_chain": [
+                                {
+                                    "subject_dn": "C=US, O=Let's Encrypt, CN=R11",
+                                    "issuer_dn": "C=US, O=Internet Security Research Group, CN=ISRG Root X1"
+                                }
+                            ],
+                            "cipher_selected": "TLS_AES_256_GCM_SHA384",
+                            "version_selected": "TLSv1_3"
+                        },
+                        "transport_protocol": "TCP",
+                        "extended_service_name": "HTTPS",
+                        "service_name": "HTTP",
+                        "port": 443
+                    }
+                ]
+            },
+            {
+                "ip": "2a01:239:385:1100:0:0:0:1",
+                "whois": {
+                    "organization": {
+                        "address": "Otto-Ostrowski-Stra\u00dfe 7\\n10249\\nBerlin\\nGERMANY",
+                        "name": "Strato GmbH"
+                    },
+                    "network": {
+                        "name": "IONOS SE"
+                    }
+                },
+                "location": {
+                    "province": "State of Berlin",
+                    "coordinates": {
+                        "latitude": 52.52437,
+                        "longitude": 13.41053
+                    },
+                    "city": "Berlin"
+                },
+                "services": [
+                    {
+                        "transport_protocol": "TCP",
+                        "extended_service_name": "HTTP",
+                        "service_name": "HTTP",
+                        "port": 80
+                    },
+                    {
+                        "tls": {
+                            "cipher_selected": "TLS_AES_256_GCM_SHA384",
+                            "version_selected": "TLSv1_3"
+                        },
+                        "transport_protocol": "TCP",
+                        "extended_service_name": "HTTPS",
+                        "service_name": "HTTP",
+                        "port": 443
+                    }
+                ]
+            },
+            {
+                "ip": "2a01:238:42c7:f000:14b2:55f0:7c50:e3bc",
+                "location": {
+                    "province": "State of Berlin",
+                    "city": "Berlin",
+                    "coordinates": {
+                        "latitude": 52.52437,
+                        "longitude": 13.41053
+                    }
+                },
+                "whois": {
+                    "organization": {
+                        "address": "Otto-Ostrowski-Stra\u00dfe 7\\n10249\\nBerlin\\nGERMANY",
+                        "name": "Strato GmbH"
+                    },
+                    "network": {
+                        "name": "STRATO AG"
+                    }
+                },
+                "services": [
+                    {
+                        "transport_protocol": "TCP",
+                        "service_name": "HTTP",
+                        "extended_service_name": "HTTP",
+                        "port": 80
+                    },
+                    {
+                        "tls": {
+                            "presented_chain": [
+                                {
+                                    "subject_dn": "C=US, O=Let's Encrypt, CN=R11",
+                                    "issuer_dn": "C=US, O=Internet Security Research Group, CN=ISRG Root X1"
+                                }
+                            ],
+                            "cipher_selected": "TLS_AES_256_GCM_SHA384",
+                            "version_selected": "TLSv1_3"
+                        },
+                        "transport_protocol": "TCP",
+                        "service_name": "HTTP",
+                        "extended_service_name": "HTTPS",
+                        "port": 443
+                    }
+                ]
+            },
+            {
+                "ip": "2a01:239:0:c4:0:0:0:1",
+                "location": {
+                    "province": "State of Berlin",
+                    "city": "Berlin",
+                    "coordinates": {
+                        "latitude": 52.52437,
+                        "longitude": 13.41053
+                    }
+                },
+                "whois": {
+                    "organization": {
+                        "address": "Otto-Ostrowski-Stra\u00dfe 7\\n10249\\nBerlin\\nGERMANY",
+                        "name": "Strato GmbH"
+                    },
+                    "network": {
+                        "name": "1&1 IONOS SE"
+                    }
+                },
+                "services": [
+                    {
+                        "transport_protocol": "TCP",
+                        "service_name": "HTTP",
+                        "extended_service_name": "HTTP",
+                        "port": 80
+                    },
+                    {
+                        "tls": {
+                            "presented_chain": [
+                                {
+                                    "subject_dn": "C=US, O=Let's Encrypt, CN=R11",
+                                    "issuer_dn": "C=US, O=Internet Security Research Group, CN=ISRG Root X1"
+                                }
+                            ],
+                            "cipher_selected": "TLS_AES_256_GCM_SHA384",
+                            "version_selected": "TLSv1_3"
+                        },
+                        "transport_protocol": "TCP",
+                        "extended_service_name": "HTTPS",
+                        "service_name": "HTTP",
+                        "port": 443
+                    }
+                ]
+            },
+            {
+                "ip": "2a01:239:2c0:e400:0:0:0:1",
+                "whois": {
+                    "organization": {
+                        "address": "Otto-Ostrowski-Stra\u00dfe 7\\n10249\\nBerlin\\nGERMANY",
+                        "name": "Strato GmbH"
+                    },
+                    "network": {
+                        "name": "IONOS SE"
+                    }
+                },
+                "location": {
+                    "province": "State of Berlin",
+                    "city": "Berlin",
+                    "coordinates": {
+                        "latitude": 52.52437,
+                        "longitude": 13.41053
+                    }
+                },
+                "services": [
+                    {
+                        "transport_protocol": "TCP",
+                        "extended_service_name": "HTTP",
+                        "service_name": "HTTP",
+                        "port": 80
+                    },
+                    {
+                        "tls": {
+                            "presented_chain": [
+                                {
+                                    "subject_dn": "C=US, O=Let's Encrypt, CN=R10",
+                                    "issuer_dn": "C=US, O=Internet Security Research Group, CN=ISRG Root X1"
+                                }
+                            ],
+                            "cipher_selected": "TLS_AES_256_GCM_SHA384",
+                            "version_selected": "TLSv1_3"
+                        },
+                        "transport_protocol": "TCP",
+                        "extended_service_name": "HTTPS",
+                        "service_name": "HTTP",
+                        "port": 443
+                    }
+                ]
+            },
+            {
+                "ip": "2a01:239:206:6b00:0:0:0:1",
+                "whois": {
+                    "organization": {
+                        "address": "Otto-Ostrowski-Stra\u00dfe 7\\n10249\\nBerlin\\nGERMANY",
+                        "name": "Strato GmbH"
+                    },
+                    "network": {
+                        "name": "IONOS SE"
+                    }
+                },
+                "location": {
+                    "province": "State of Berlin",
+                    "city": "Berlin",
+                    "coordinates": {
+                        "latitude": 52.52437,
+                        "longitude": 13.41053
+                    }
+                },
+                "services": [
+                    {
+                        "transport_protocol": "TCP",
+                        "extended_service_name": "HTTP",
+                        "service_name": "HTTP",
+                        "port": 80
+                    },
+                    {
+                        "tls": {
+                            "presented_chain": [
+                                {
+                                    "subject_dn": "C=US, O=Let's Encrypt, CN=R11",
+                                    "issuer_dn": "C=US, O=Internet Security Research Group, CN=ISRG Root X1"
+                                }
+                            ],
+                            "cipher_selected": "TLS_AES_256_GCM_SHA384",
+                            "version_selected": "TLSv1_3"
+                        },
+                        "transport_protocol": "TCP",
+                        "extended_service_name": "HTTPS",
+                        "service_name": "HTTP",
+                        "port": 443
+                    }
+                ]
+            },
+            {
+                "ip": "2001:4178:6:1141:85:236:44:69",
+                "whois": {
+                    "organization": {
+                        "address": "Johanna-Dachs-Str. 55\\nD-93055\\nRegensburg\\nGERMANY",
+                        "name": "InterNetX GmbH"
+                    },
+                    "network": {
+                        "name": "InterNetX GmbH"
+                    }
+                },
+                "location": {
+                    "province": "Bavaria",
+                    "city": "Munich",
+                    "coordinates": {
+                        "latitude": 48.13743,
+                        "longitude": 11.57549
+                    }
+                },
+                "services": [
+                    {
+                        "transport_protocol": "TCP",
+                        "extended_service_name": "HTTP",
+                        "service_name": "HTTP",
+                        "port": 80
+                    },
+                    {
+                        "tls": {
+                            "presented_chain": [
+                                {
+                                    "subject_dn": "C=US, O=DigiCert Inc, OU=www.digicert.com, CN=Thawte TLS RSA CA G1",
+                                    "issuer_dn": "C=US, O=DigiCert Inc, OU=www.digicert.com, CN=DigiCert Global Root G2"
+                                }
+                            ],
+                            "cipher_selected": "TLS_AES_256_GCM_SHA384",
+                            "version_selected": "TLSv1_3"
+                        },
+                        "transport_protocol": "TCP",
+                        "service_name": "HTTP",
+                        "extended_service_name": "HTTPS",
+                        "port": 443
+                    }
+                ]
+            },
+            {
+                "ip": "2407:1c00:6100:5d30:0:0:0:0",
+                "location": {
+                    "city": "Singapore",
+                    "coordinates": {
+                        "latitude": 1.28967,
+                        "longitude": 103.85007
+                    }
+                },
+                "whois": {
+                    "organization": {
+                        "address": "80 Robinson Road # 02-00",
+                        "name": "Godaddy.com"
+                    },
+                    "network": {
+                        "name": "80 Robinson Road # 02-00"
+                    }
+                },
+                "services": [
+                    {
+                        "transport_protocol": "TCP",
+                        "extended_service_name": "HTTP",
+                        "service_name": "HTTP",
+                        "port": 80
+                    },
+                    {
+                        "tls": {
+                            "presented_chain": [
+                                {
+                                    "subject_dn": "C=US, O=Let's Encrypt, CN=R11",
+                                    "issuer_dn": "C=US, O=Internet Security Research Group, CN=ISRG Root X1"
+                                }
+                            ],
+                            "cipher_selected": "TLS_AES_256_GCM_SHA384",
+                            "version_selected": "TLSv1_3"
+                        },
+                        "transport_protocol": "TCP",
+                        "service_name": "HTTP",
+                        "extended_service_name": "HTTPS",
+                        "port": 443
+                    }
+                ]
+            },
+            {
+                "ip": "2001:15e8:110:6cc9:0:0:0:1",
+                "whois": {
+                    "organization": {
+                        "address": "Ktis 2\\n38403\\nKtis\\nCZECH REPUBLIC",
+                        "name": "INTERNET CZ, a.s."
+                    },
+                    "network": {
+                        "name": "INTERNET CZ, a.s."
+                    }
+                },
+                "location": {
+                    "province": "Prague",
+                    "city": "Prague",
+                    "coordinates": {
+                        "latitude": 50.08804,
+                        "longitude": 14.42076
+                    }
+                },
+                "services": [
+                    {
+                        "transport_protocol": "TCP",
+                        "extended_service_name": "HTTP",
+                        "service_name": "HTTP",
+                        "port": 80
+                    },
+                    {
+                        "tls": {
+                            "presented_chain": [
+                                {
+                                    "subject_dn": "C=US, O=Let's Encrypt, CN=R10",
+                                    "issuer_dn": "C=US, O=Internet Security Research Group, CN=ISRG Root X1"
+                                }
+                            ],
+                            "cipher_selected": "TLS_AES_256_GCM_SHA384",
+                            "version_selected": "TLSv1_3"
+                        },
+                        "transport_protocol": "TCP",
+                        "extended_service_name": "HTTPS",
+                        "service_name": "HTTP",
+                        "port": 443
+                    }
+                ]
+            },
+            {
+                "ip": "2a01:239:379:be00:0:0:0:1",
+                "whois": {
+                    "organization": {
+                        "address": "Otto-Ostrowski-Stra\u00dfe 7\\n10249\\nBerlin\\nGERMANY",
+                        "name": "Strato GmbH"
+                    },
+                    "network": {
+                        "name": "IONOS SE"
+                    }
+                },
+                "location": {
+                    "province": "State of Berlin",
+                    "city": "Berlin",
+                    "coordinates": {
+                        "latitude": 52.52437,
+                        "longitude": 13.41053
+                    }
+                },
+                "services": [
+                    {
+                        "transport_protocol": "TCP",
+                        "extended_service_name": "HTTP",
+                        "service_name": "HTTP",
+                        "port": 80
+                    },
+                    {
+                        "tls": {
+                            "presented_chain": [
+                                {
+                                    "subject_dn": "C=GB, ST=Greater Manchester, L=Salford, O=Sectigo Limited, CN=Sectigo RSA Domain Validation Secure Server CA",
+                                    "issuer_dn": "C=US, ST=New Jersey, L=Jersey City, O=The USERTRUST Network, CN=USERTrust RSA Certification Authority"
+                                },
+                                {
+                                    "subject_dn": "C=US, ST=New Jersey, L=Jersey City, O=The USERTRUST Network, CN=USERTrust RSA Certification Authority",
+                                    "issuer_dn": "C=GB, ST=Greater Manchester, L=Salford, O=Comodo CA Limited, CN=AAA Certificate Services"
+                                }
+                            ],
+                            "cipher_selected": "TLS_AES_256_GCM_SHA384",
+                            "version_selected": "TLSv1_3"
+                        },
+                        "transport_protocol": "TCP",
+                        "extended_service_name": "HTTPS",
+                        "service_name": "HTTP",
+                        "port": 443
+                    }
+                ]
+            },
+            {
+                "ip": "2a01:7c8:fff9:48b:0:0:0:1",
+                "whois": {
+                    "organization": {
+                        "address": "Achtseweg Zuid 241 B\\n5651GW\\nEindhoven\\nNETHERLANDS",
+                        "name": "Signet B.V."
+                    },
+                    "network": {
+                        "name": "TransIP BV"
+                    }
+                },
+                "location": {
+                    "province": "North Holland",
+                    "city": "Aalsmeer",
+                    "coordinates": {
+                        "latitude": 52.25917,
+                        "longitude": 4.75972
+                    }
+                },
+                "services": [
+                    {
+                        "transport_protocol": "TCP",
+                        "extended_service_name": "HTTP",
+                        "service_name": "HTTP",
+                        "port": 80
+                    },
+                    {
+                        "tls": {
+                            "presented_chain": [
+                                {
+                                    "subject_dn": "C=US, O=Let's Encrypt, CN=R11",
+                                    "issuer_dn": "C=US, O=Internet Security Research Group, CN=ISRG Root X1"
+                                }
+                            ],
+                            "cipher_selected": "TLS_AES_256_GCM_SHA384",
+                            "version_selected": "TLSv1_3"
+                        },
+                        "transport_protocol": "TCP",
+                        "extended_service_name": "HTTPS",
+                        "service_name": "HTTP",
+                        "port": 443
+                    }
+                ]
+            },
+            {
+                "ip": "2a01:239:367:1f00:0:0:0:1",
+                "whois": {
+                    "organization": {
+                        "address": "Otto-Ostrowski-Stra\u00dfe 7\\n10249\\nBerlin\\nGERMANY",
+                        "name": "Strato GmbH"
+                    },
+                    "network": {
+                        "name": "IONOS SE"
+                    }
+                },
+                "location": {
+                    "province": "State of Berlin",
+                    "city": "Berlin",
+                    "coordinates": {
+                        "latitude": 52.52437,
+                        "longitude": 13.41053
+                    }
+                },
+                "services": [
+                    {
+                        "transport_protocol": "TCP",
+                        "extended_service_name": "HTTP",
+                        "service_name": "HTTP",
+                        "port": 80
+                    },
+                    {
+                        "tls": {
+                            "cipher_selected": "TLS_AES_256_GCM_SHA384",
+                            "version_selected": "TLSv1_3"
+                        },
+                        "transport_protocol": "TCP",
+                        "extended_service_name": "HTTPS",
+                        "service_name": "HTTP",
+                        "port": 443
+                    }
+                ]
+            },
+            {
+                "ip": "2a01:238:435d:9f00:1a99:fbea:aff7:bb8f",
+                "whois": {
+                    "organization": {
+                        "address": "Otto-Ostrowski-Stra\u00dfe 7\\n10249\\nBerlin\\nGERMANY",
+                        "name": "Strato GmbH"
+                    },
+                    "network": {
+                        "name": "STRATO AG"
+                    }
+                },
+                "location": {
+                    "province": "State of Berlin",
+                    "city": "Berlin",
+                    "coordinates": {
+                        "latitude": 52.52437,
+                        "longitude": 13.41053
+                    }
+                },
+                "services": [
+                    {
+                        "transport_protocol": "TCP",
+                        "extended_service_name": "HTTP",
+                        "service_name": "HTTP",
+                        "port": 80
+                    },
+                    {
+                        "tls": {
+                            "presented_chain": [
+                                {
+                                    "subject_dn": "C=US, O=Let's Encrypt, CN=R10",
+                                    "issuer_dn": "C=US, O=Internet Security Research Group, CN=ISRG Root X1"
+                                }
+                            ],
+                            "cipher_selected": "TLS_AES_256_GCM_SHA384",
+                            "version_selected": "TLSv1_3"
+                        },
+                        "transport_protocol": "TCP",
+                        "extended_service_name": "HTTPS",
+                        "service_name": "HTTP",
+                        "port": 443
+                    }
+                ]
+            },
+            {
+                "ip": "2a02:2170:202:89:20:83:120:1",
+                "whois": {
+                    "organization": {
+                        "address": "MARINUS DAMMEWEG 25\\n5928 PW\\nVENLO\\nNETHERLANDS",
+                        "name": "Systemec BV"
+                    },
+                    "network": {
+                        "name": "Systemec BV"
+                    }
+                },
+                "location": {
+                    "province": "Limburg",
+                    "city": "Venlo",
+                    "coordinates": {
+                        "latitude": 51.37,
+                        "longitude": 6.16806
+                    }
+                },
+                "services": [
+                    {
+                        "transport_protocol": "TCP",
+                        "extended_service_name": "HTTP",
+                        "service_name": "HTTP",
+                        "port": 80
+                    },
+                    {
+                        "tls": {
+                            "presented_chain": [
+                                {
+                                    "subject_dn": "C=US, ST=New Jersey, L=Jersey City, O=The USERTRUST Network, CN=USERTrust RSA Certification Authority",
+                                    "issuer_dn": "C=US, ST=New Jersey, L=Jersey City, O=The USERTRUST Network, CN=USERTrust RSA Certification Authority"
+                                }
+                            ],
+                            "cipher_selected": "TLS_CHACHA20_POLY1305_SHA256",
+                            "version_selected": "TLSv1_3"
+                        },
+                        "transport_protocol": "TCP",
+                        "extended_service_name": "HTTPS",
+                        "service_name": "HTTP",
+                        "port": 443
+                    }
+                ]
+            },
+            {
+                "ip": "2001:ba0:22d:3300:0:0:0:1",
+                "whois": {
+                    "organization": {
+                        "address": "C/ Madre de Dios n\u00ba 21, 26004, Logro\u00f1o (La Rioja) Spain\\n26004\\nLogro\u00f1o\\nSPAIN",
+                        "name": "ARSYS INTERNET S.L.U."
+                    },
+                    "network": {
+                        "name": "ARSYS INTERNET S.L.U."
+                    }
+                },
+                "location": {
+                    "province": "La Rioja",
+                    "city": "Logro\u00f1o",
+                    "coordinates": {
+                        "latitude": 42.46667,
+                        "longitude": -2.45
+                    }
+                },
+                "services": [
+                    {
+                        "transport_protocol": "TCP",
+                        "service_name": "HTTP",
+                        "extended_service_name": "HTTP",
+                        "port": 80
+                    },
+                    {
+                        "tls": {
+                            "presented_chain": [
+                                {
+                                    "subject_dn": "C=US, O=Let's Encrypt, CN=R10",
+                                    "issuer_dn": "C=US, O=Internet Security Research Group, CN=ISRG Root X1"
+                                }
+                            ],
+                            "cipher_selected": "TLS_AES_256_GCM_SHA384",
+                            "version_selected": "TLSv1_3"
+                        },
+                        "transport_protocol": "TCP",
+                        "extended_service_name": "HTTPS",
+                        "service_name": "HTTP",
+                        "port": 443
+                    }
+                ]
+            },
+            {
+                "ip": "2a03:4000:67:d0a:0:0:0:7",
+                "whois": {
+                    "organization": {
+                        "address": "Daimlerstrasse 25\\n76185\\nKarlsruhe\\nGERMANY",
+                        "name": "netcup GmbH"
+                    },
+                    "network": {
+                        "name": "netcup GmbH"
+                    }
+                },
+                "location": {
+                    "province": "Bavaria",
+                    "city": "N\u00fcrnberg",
+                    "coordinates": {
+                        "latitude": 49.4453,
+                        "longitude": 11.0222
+                    }
+                },
+                "services": [
+                    {
+                        "transport_protocol": "TCP",
+                        "extended_service_name": "HTTP",
+                        "service_name": "HTTP",
+                        "port": 80
+                    },
+                    {
+                        "transport_protocol": "TCP",
+                        "tls": {
+                            "presented_chain": [
+                                {
+                                    "subject_dn": "C=US, O=Let's Encrypt, CN=R11",
+                                    "issuer_dn": "C=US, O=Internet Security Research Group, CN=ISRG Root X1"
+                                }
+                            ],
+                            "cipher_selected": "TLS_AES_256_GCM_SHA384",
+                            "version_selected": "TLSv1_3"
+                        },
+                        "extended_service_name": "HTTPS",
+                        "service_name": "HTTP",
+                        "port": 443
+                    }
+                ]
+            },
+            {
+                "ip": "2a03:4000:56:f22:0:0:8:19",
+                "location": {
+                    "province": "Bavaria",
+                    "city": "N\u00fcrnberg",
+                    "coordinates": {
+                        "latitude": 49.4453,
+                        "longitude": 11.0222
+                    }
+                },
+                "whois": {
+                    "organization": {
+                        "address": "Daimlerstrasse 25\\n76185\\nKarlsruhe\\nGERMANY",
+                        "name": "netcup GmbH"
+                    },
+                    "network": {
+                        "name": "netcup GmbH"
+                    }
+                },
+                "services": [
+                    {
+                        "transport_protocol": "TCP",
+                        "extended_service_name": "HTTP",
+                        "service_name": "HTTP",
+                        "port": 80
+                    },
+                    {
+                        "tls": {
+                            "presented_chain": [
+                                {
+                                    "subject_dn": "C=US, O=Let's Encrypt, CN=R11",
+                                    "issuer_dn": "C=US, O=Internet Security Research Group, CN=ISRG Root X1"
+                                }
+                            ],
+                            "cipher_selected": "TLS_CHACHA20_POLY1305_SHA256",
+                            "version_selected": "TLSv1_3"
+                        },
+                        "transport_protocol": "TCP",
+                        "extended_service_name": "HTTPS",
+                        "service_name": "HTTP",
+                        "port": 443
+                    }
+                ]
+            },
+            {
+                "ip": "2a01:4f8:c012:11c8:0:0:0:1",
+                "whois": {
+                    "organization": {
+                        "address": "Industriestrasse 25\\nD-91710\\nGunzenhausen\\nGERMANY",
+                        "name": "Hetzner Online GmbH"
+                    },
+                    "network": {
+                        "name": "Hetzner Online GmbH"
+                    }
+                },
+                "location": {
+                    "province": "Saxony",
+                    "city": "Falkenstein",
+                    "coordinates": {
+                        "latitude": 50.47788,
+                        "longitude": 12.37129
+                    }
+                },
+                "services": [
+                    {
+                        "transport_protocol": "TCP",
+                        "extended_service_name": "HTTP",
+                        "service_name": "HTTP",
+                        "port": 80
+                    },
+                    {
+                        "tls": {
+                            "cipher_selected": "TLS_AES_256_GCM_SHA384",
+                            "version_selected": "TLSv1_3"
+                        },
+                        "transport_protocol": "TCP",
+                        "extended_service_name": "HTTPS",
+                        "service_name": "HTTP",
+                        "port": 443
+                    }
+                ]
+            },
+            {
+                "ip": "2a03:4000:0:5f8:d8e0:c4ff:fe41:ca4d",
+                "whois": {
+                    "organization": {
+                        "address": "Daimlerstrasse 25\\n76185\\nKarlsruhe\\nGERMANY",
+                        "name": "netcup GmbH"
+                    },
+                    "network": {
+                        "name": "netcup GmbH"
+                    }
+                },
+                "location": {
+                    "province": "Bavaria",
+                    "city": "N\u00fcrnberg",
+                    "coordinates": {
+                        "latitude": 49.4453,
+                        "longitude": 11.0222
+                    }
+                },
+                "services": [
+                    {
+                        "transport_protocol": "TCP",
+                        "extended_service_name": "HTTP",
+                        "service_name": "HTTP",
+                        "port": 80
+                    },
+                    {
+                        "tls": {
+                            "presented_chain": [
+                                {
+                                    "subject_dn": "C=US, O=Let's Encrypt, CN=R11",
+                                    "issuer_dn": "C=US, O=Internet Security Research Group, CN=ISRG Root X1"
+                                }
+                            ],
+                            "cipher_selected": "TLS_AES_256_GCM_SHA384",
+                            "version_selected": "TLSv1_3"
+                        },
+                        "transport_protocol": "TCP",
+                        "service_name": "HTTP",
+                        "extended_service_name": "HTTPS",
+                        "port": 443
+                    }
+                ]
+            },
+            {
+                "ip": "2607:f1c0:f07d:5c00:0:0:0:1",
+                "whois": {
+                    "organization": {
+                        "name": "IONOS Inc."
+                    },
+                    "network": {
+                        "name": "IONOS Inc."
+                    }
+                },
+                "location": {
+                    "province": "Missouri",
+                    "coordinates": {
+                        "latitude": 39.09973,
+                        "longitude": -94.57857
+                    },
+                    "city": "Kansas City"
+                },
+                "services": [
+                    {
+                        "transport_protocol": "TCP",
+                        "extended_service_name": "HTTP",
+                        "service_name": "HTTP",
+                        "port": 80
+                    },
+                    {
+                        "tls": {
+                            "presented_chain": [
+                                {
+                                    "subject_dn": "C=US, O=Let's Encrypt, CN=R11",
+                                    "issuer_dn": "C=US, O=Internet Security Research Group, CN=ISRG Root X1"
+                                }
+                            ],
+                            "cipher_selected": "TLS_AES_256_GCM_SHA384",
+                            "version_selected": "TLSv1_3"
+                        },
+                        "transport_protocol": "TCP",
+                        "extended_service_name": "HTTPS",
+                        "service_name": "HTTP",
+                        "port": 443
+                    }
+                ]
+            },
+            {
+                "ip": "2a01:7e0:0:134:0:0:0:11ea",
+                "whois": {
+                    "organization": {
+                        "address": "Kruppstr. 105\\n60388\\nFrankfurt am Main\\nGERMANY",
+                        "name": "firstcolo GmbH"
+                    },
+                    "network": {
+                        "name": "firstcolo GmbH"
+                    }
+                },
+                "location": {
+                    "province": "Hesse",
+                    "city": "Frankfurt am Main",
+                    "coordinates": {
+                        "latitude": 50.11552,
+                        "longitude": 8.68417
+                    }
+                },
+                "services": [
+                    {
+                        "transport_protocol": "TCP",
+                        "extended_service_name": "HTTP",
+                        "service_name": "HTTP",
+                        "port": 80
+                    },
+                    {
+                        "tls": {
+                            "presented_chain": [
+                                {
+                                    "subject_dn": "C=US, O=Let's Encrypt, CN=R11",
+                                    "issuer_dn": "C=US, O=Internet Security Research Group, CN=ISRG Root X1"
+                                }
+                            ],
+                            "cipher_selected": "TLS_AES_256_GCM_SHA384",
+                            "version_selected": "TLSv1_3"
+                        },
+                        "transport_protocol": "TCP",
+                        "extended_service_name": "HTTPS",
+                        "service_name": "HTTP",
+                        "port": 443
+                    }
+                ]
+            },
+            {
+                "ip": "2a01:4f8:2200:2b1b:0:0:0:116",
+                "whois": {
+                    "organization": {
+                        "address": "Industriestrasse 25\\nD-91710\\nGunzenhausen\\nGERMANY",
+                        "name": "Hetzner Online GmbH"
+                    },
+                    "network": {
+                        "name": "HOS-2028760"
+                    }
+                },
+                "location": {
+                    "province": "Saxony",
+                    "city": "Falkenstein",
+                    "coordinates": {
+                        "latitude": 50.47788,
+                        "longitude": 12.37129
+                    }
+                },
+                "services": [
+                    {
+                        "transport_protocol": "TCP",
+                        "extended_service_name": "HTTP",
+                        "service_name": "HTTP",
+                        "port": 80
+                    },
+                    {
+                        "tls": {
+                            "presented_chain": [
+                                {
+                                    "subject_dn": "C=US, O=Let's Encrypt, CN=R10",
+                                    "issuer_dn": "C=US, O=Internet Security Research Group, CN=ISRG Root X1"
+                                }
+                            ],
+                            "cipher_selected": "TLS_CHACHA20_POLY1305_SHA256",
+                            "version_selected": "TLSv1_3"
+                        },
+                        "transport_protocol": "TCP",
+                        "extended_service_name": "HTTPS",
+                        "service_name": "HTTP",
+                        "port": 443
+                    }
+                ]
+            },
+            {
+                "ip": "2a0e:7280:0:189:137:777:0:1",
+                "whois": {
+                    "organization": {
+                        "address": "Lavendelheide 21-108\\n9202PD\\nDrachten\\nNETHERLANDS",
+                        "name": "Cloud86 B.V."
+                    },
+                    "network": {
+                        "name": "Cloud86 B.V."
+                    }
+                },
+                "location": {
+                    "province": "Groningen",
+                    "city": "Groningen",
+                    "coordinates": {
+                        "latitude": 53.21917,
+                        "longitude": 6.56667
+                    }
+                },
+                "services": [
+                    {
+                        "transport_protocol": "TCP",
+                        "extended_service_name": "HTTP",
+                        "service_name": "HTTP",
+                        "port": 80
+                    },
+                    {
+                        "tls": {
+                            "presented_chain": [
+                                {
+                                    "subject_dn": "C=US, O=Let's Encrypt, CN=R11",
+                                    "issuer_dn": "C=US, O=Internet Security Research Group, CN=ISRG Root X1"
+                                }
+                            ],
+                            "cipher_selected": "TLS_CHACHA20_POLY1305_SHA256",
+                            "version_selected": "TLSv1_3"
+                        },
+                        "transport_protocol": "TCP",
+                        "extended_service_name": "HTTPS",
+                        "service_name": "HTTP",
+                        "port": 443
+                    }
+                ]
+            },
+            {
+                "ip": "2a01:4f8:13b:2c43:0:0:0:2",
+                "whois": {
+                    "organization": {
+                        "address": "Industriestrasse 25\\nD-91710\\nGunzenhausen\\nGERMANY",
+                        "name": "Hetzner Online GmbH"
+                    },
+                    "network": {
+                        "name": "HOS-621566"
+                    }
+                },
+                "location": {
+                    "province": "Saxony",
+                    "city": "Falkenstein",
+                    "coordinates": {
+                        "latitude": 50.47788,
+                        "longitude": 12.37129
+                    }
+                },
+                "services": [
+                    {
+                        "transport_protocol": "TCP",
+                        "extended_service_name": "HTTP",
+                        "service_name": "HTTP",
+                        "port": 80
+                    },
+                    {
+                        "tls": {
+                            "presented_chain": [
+                                {
+                                    "subject_dn": "C=US, O=Let's Encrypt, CN=R10",
+                                    "issuer_dn": "C=US, O=Internet Security Research Group, CN=ISRG Root X1"
+                                }
+                            ],
+                            "cipher_selected": "TLS_CHACHA20_POLY1305_SHA256",
+                            "version_selected": "TLSv1_3"
+                        },
+                        "transport_protocol": "TCP",
+                        "extended_service_name": "HTTPS",
+                        "service_name": "HTTP",
+                        "port": 443
+                    }
+                ]
+            },
+            {
+                "ip": "2a0a:4cc0:2000:ac:a838:81ff:fe5d:5892",
+                "whois": {
+                    "organization": {
+                        "address": "Daimlerstrasse 25\\n76185\\nKarlsruhe\\nGERMANY",
+                        "name": "netcup GmbH"
+                    },
+                    "network": {
+                        "name": "netcup GmbH"
+                    }
+                },
+                "location": {
+                    "province": "Virginia",
+                    "city": "Ashburn",
+                    "coordinates": {
+                        "latitude": 39.04372,
+                        "longitude": -77.48749
+                    }
+                },
+                "services": [
+                    {
+                        "transport_protocol": "TCP",
+                        "extended_service_name": "HTTP",
+                        "service_name": "HTTP",
+                        "port": 80
+                    },
+                    {
+                        "tls": {
+                            "presented_chain": [
+                                {
+                                    "subject_dn": "C=US, O=Let's Encrypt, CN=R11",
+                                    "issuer_dn": "C=US, O=Internet Security Research Group, CN=ISRG Root X1"
+                                }
+                            ],
+                            "cipher_selected": "TLS_CHACHA20_POLY1305_SHA256",
+                            "version_selected": "TLSv1_3"
+                        },
+                        "transport_protocol": "TCP",
+                        "extended_service_name": "HTTPS",
+                        "service_name": "HTTP",
+                        "port": 443
+                    }
+                ]
+            },
+            {
+                "ip": "2a01:239:28e:c700:0:0:0:1",
+                "location": {
+                    "province": "State of Berlin",
+                    "city": "Berlin",
+                    "coordinates": {
+                        "latitude": 52.52437,
+                        "longitude": 13.41053
+                    }
+                },
+                "whois": {
+                    "organization": {
+                        "address": "Otto-Ostrowski-Stra\u00dfe 7\\n10249\\nBerlin\\nGERMANY",
+                        "name": "Strato GmbH"
+                    },
+                    "network": {
+                        "name": "IONOS SE"
+                    }
+                },
+                "services": [
+                    {
+                        "transport_protocol": "TCP",
+                        "extended_service_name": "HTTP",
+                        "service_name": "HTTP",
+                        "port": 80
+                    },
+                    {
+                        "transport_protocol": "TCP",
+                        "tls": {
+                            "presented_chain": [
+                                {
+                                    "subject_dn": "C=US, O=Let's Encrypt, CN=R11",
+                                    "issuer_dn": "C=US, O=Internet Security Research Group, CN=ISRG Root X1"
+                                }
+                            ],
+                            "cipher_selected": "TLS_AES_256_GCM_SHA384",
+                            "version_selected": "TLSv1_3"
+                        },
+                        "extended_service_name": "HTTPS",
+                        "service_name": "HTTP",
+                        "port": 443
+                    }
+                ]
+            },
+            {
+                "ip": "2001:1600:11:9:9:0:0:2",
+                "whois": {
+                    "organization": {
+                        "address": "25, rue Eugene-Marziano\\n1227\\nLes Acacias\\nSWITZERLAND",
+                        "name": "Infomaniak Network SA"
+                    },
+                    "network": {
+                        "name": "Infomaniak Network SA"
+                    }
+                },
+                "location": {
+                    "province": "Geneva",
+                    "city": "Gen\u00e8ve",
+                    "coordinates": {
+                        "latitude": 46.20222,
+                        "longitude": 6.14569
+                    }
+                },
+                "services": [
+                    {
+                        "transport_protocol": "TCP",
+                        "extended_service_name": "HTTP",
+                        "service_name": "HTTP",
+                        "port": 80
+                    },
+                    {
+                        "tls": {
+                            "presented_chain": [
+                                {
+                                    "subject_dn": "C=US, O=Let's Encrypt, CN=R10",
+                                    "issuer_dn": "C=US, O=Internet Security Research Group, CN=ISRG Root X1"
+                                }
+                            ],
+                            "cipher_selected": "TLS_CHACHA20_POLY1305_SHA256",
+                            "version_selected": "TLSv1_3"
+                        },
+                        "transport_protocol": "TCP",
+                        "extended_service_name": "HTTPS",
+                        "service_name": "HTTP",
+                        "port": 443
+                    }
+                ]
+            },
+            {
+                "ip": "2a01:4f8:c17:979:0:0:0:1",
+                "location": {
+                    "province": "Saxony",
+                    "city": "Falkenstein",
+                    "coordinates": {
+                        "latitude": 50.47788,
+                        "longitude": 12.37129
+                    }
+                },
+                "whois": {
+                    "organization": {
+                        "address": "Industriestrasse 25\\nD-91710\\nGunzenhausen\\nGERMANY",
+                        "name": "Hetzner Online GmbH"
+                    },
+                    "network": {
+                        "name": "Hetzner Online GmbH"
+                    }
+                },
+                "services": [
+                    {
+                        "transport_protocol": "TCP",
+                        "extended_service_name": "HTTP",
+                        "service_name": "HTTP",
+                        "port": 80
+                    },
+                    {
+                        "tls": {
+                            "presented_chain": [
+                                {
+                                    "subject_dn": "C=US, O=Let's Encrypt, CN=R10",
+                                    "issuer_dn": "C=US, O=Internet Security Research Group, CN=ISRG Root X1"
+                                }
+                            ],
+                            "cipher_selected": "TLS_AES_256_GCM_SHA384",
+                            "version_selected": "TLSv1_3"
+                        },
+                        "transport_protocol": "TCP",
+                        "extended_service_name": "HTTPS",
+                        "service_name": "HTTP",
+                        "port": 443
+                    }
+                ]
+            },
+            {
+                "ip": "2a02:c207:2248:1040:0:0:0:1",
+                "whois": {
+                    "organization": {
+                        "address": "Aschauer Strasse 32a\\n81549\\nMunchen\\nGERMANY",
+                        "name": "Contabo GmbH"
+                    },
+                    "network": {
+                        "name": "Contabo GmbH"
+                    }
+                },
+                "location": {
+                    "province": "Hesse",
+                    "city": "Frankfurt am Main",
+                    "coordinates": {
+                        "latitude": 50.11552,
+                        "longitude": 8.68417
+                    }
+                },
+                "services": [
+                    {
+                        "transport_protocol": "TCP",
+                        "service_name": "HTTP",
+                        "extended_service_name": "HTTP",
+                        "port": 80
+                    },
+                    {
+                        "tls": {
+                            "presented_chain": [
+                                {
+                                    "subject_dn": "C=US, O=Let's Encrypt, CN=R10",
+                                    "issuer_dn": "C=US, O=Internet Security Research Group, CN=ISRG Root X1"
+                                }
+                            ],
+                            "cipher_selected": "TLS_AES_256_GCM_SHA384",
+                            "version_selected": "TLSv1_3"
+                        },
+                        "transport_protocol": "TCP",
+                        "service_name": "HTTP",
+                        "extended_service_name": "HTTPS",
+                        "port": 443
+                    }
+                ]
+            },
+            {
+                "ip": "2a01:239:302:9100:0:0:0:1",
+                "location": {
+                    "province": "State of Berlin",
+                    "city": "Berlin",
+                    "coordinates": {
+                        "latitude": 52.52437,
+                        "longitude": 13.41053
+                    }
+                },
+                "whois": {
+                    "organization": {
+                        "address": "Otto-Ostrowski-Stra\u00dfe 7\\n10249\\nBerlin\\nGERMANY",
+                        "name": "Strato GmbH"
+                    },
+                    "network": {
+                        "name": "IONOS SE"
+                    }
+                },
+                "services": [
+                    {
+                        "transport_protocol": "TCP",
+                        "extended_service_name": "HTTP",
+                        "service_name": "HTTP",
+                        "port": 80
+                    },
+                    {
+                        "transport_protocol": "TCP",
+                        "tls": {
+                            "presented_chain": [
+                                {
+                                    "subject_dn": "C=US, O=Let's Encrypt, CN=R10",
+                                    "issuer_dn": "C=US, O=Internet Security Research Group, CN=ISRG Root X1"
+                                }
+                            ],
+                            "cipher_selected": "TLS_AES_256_GCM_SHA384",
+                            "version_selected": "TLSv1_3"
+                        },
+                        "extended_service_name": "HTTPS",
+                        "service_name": "HTTP",
+                        "port": 443
+                    }
+                ]
+            },
+            {
+                "ip": "2a01:4f8:190:3387:0:0:0:2",
+                "whois": {
+                    "organization": {
+                        "address": "Industriestrasse 25\\nD-91710\\nGunzenhausen\\nGERMANY",
+                        "name": "Hetzner Online GmbH"
+                    },
+                    "network": {
+                        "name": "HOS-1947763"
+                    }
+                },
+                "location": {
+                    "province": "Saxony",
+                    "city": "Falkenstein",
+                    "coordinates": {
+                        "latitude": 50.47788,
+                        "longitude": 12.37129
+                    }
+                },
+                "services": [
+                    {
+                        "transport_protocol": "TCP",
+                        "extended_service_name": "HTTP",
+                        "service_name": "HTTP",
+                        "port": 80
+                    },
+                    {
+                        "tls": {
+                            "presented_chain": [
+                                {
+                                    "subject_dn": "C=US, O=Let's Encrypt, CN=R10",
+                                    "issuer_dn": "C=US, O=Internet Security Research Group, CN=ISRG Root X1"
+                                }
+                            ],
+                            "cipher_selected": "TLS_CHACHA20_POLY1305_SHA256",
+                            "version_selected": "TLSv1_3"
+                        },
+                        "transport_protocol": "TCP",
+                        "service_name": "HTTP",
+                        "extended_service_name": "HTTPS",
+                        "port": 443
+                    }
+                ]
+            },
+            {
+                "ip": "2001:1af8:8110:a00c:2:0:0:26",
+                "whois": {
+                    "organization": {
+                        "address": "Postbus 93054\\n1090BB\\nAmsterdam\\nNETHERLANDS",
+                        "name": "LeaseWeb Netherlands B.V."
+                    },
+                    "network": {
+                        "name": "LeaseWeb Netherlands B.V."
+                    }
+                },
+                "location": {
+                    "province": "North Holland",
+                    "city": "Amsterdam",
+                    "coordinates": {
+                        "latitude": 52.37403,
+                        "longitude": 4.88969
+                    }
+                },
+                "services": [
+                    {
+                        "transport_protocol": "TCP",
+                        "extended_service_name": "HTTP",
+                        "service_name": "HTTP",
+                        "port": 80
+                    },
+                    {
+                        "tls": {
+                            "presented_chain": [
+                                {
+                                    "subject_dn": "C=US, O=Let's Encrypt, CN=R10",
+                                    "issuer_dn": "C=US, O=Internet Security Research Group, CN=ISRG Root X1"
+                                }
+                            ],
+                            "cipher_selected": "TLS_AES_256_GCM_SHA384",
+                            "version_selected": "TLSv1_3"
+                        },
+                        "transport_protocol": "TCP",
+                        "extended_service_name": "HTTPS",
+                        "service_name": "HTTP",
+                        "port": 443
+                    }
+                ]
+            },
+            {
+                "ip": "2401:2880:1:2:0:0:163:25",
+                "whois": {
+                    "network": {
+                        "name": "Bonuan 163 segment"
+                    }
+                },
+                "location": {
+                    "province": "Central Luzon",
+                    "city": "San Jose del Monte",
+                    "coordinates": {
+                        "latitude": 14.81389,
+                        "longitude": 121.04528
+                    }
+                },
+                "services": [
+                    {
+                        "transport_protocol": "TCP",
+                        "service_name": "HTTP",
+                        "extended_service_name": "HTTP",
+                        "port": 80
+                    },
+                    {
+                        "tls": {
+                            "cipher_selected": "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256",
+                            "version_selected": "TLSv1_2"
+                        },
+                        "transport_protocol": "TCP",
+                        "extended_service_name": "HTTPS",
+                        "service_name": "HTTP",
+                        "port": 443
+                    }
+                ]
+            },
+            {
+                "ip": "2a01:239:20c:3800:0:0:0:1",
+                "location": {
+                    "province": "State of Berlin",
+                    "city": "Berlin",
+                    "coordinates": {
+                        "latitude": 52.52437,
+                        "longitude": 13.41053
+                    }
+                },
+                "whois": {
+                    "organization": {
+                        "address": "Otto-Ostrowski-Stra\u00dfe 7\\n10249\\nBerlin\\nGERMANY",
+                        "name": "Strato GmbH"
+                    },
+                    "network": {
+                        "name": "IONOS SE"
+                    }
+                },
+                "services": [
+                    {
+                        "transport_protocol": "TCP",
+                        "extended_service_name": "HTTP",
+                        "service_name": "HTTP",
+                        "port": 80
+                    },
+                    {
+                        "tls": {
+                            "presented_chain": [
+                                {
+                                    "subject_dn": "C=US, O=Let's Encrypt, CN=R10",
+                                    "issuer_dn": "C=US, O=Internet Security Research Group, CN=ISRG Root X1"
+                                }
+                            ],
+                            "cipher_selected": "TLS_AES_256_GCM_SHA384",
+                            "version_selected": "TLSv1_3"
+                        },
+                        "transport_protocol": "TCP",
+                        "extended_service_name": "HTTPS",
+                        "service_name": "HTTP",
+                        "port": 443
+                    }
+                ]
+            },
+            {
+                "ip": "2a01:239:2db:9300:0:0:0:6",
+                "whois": {
+                    "organization": {
+                        "address": "Otto-Ostrowski-Stra\u00dfe 7\\n10249\\nBerlin\\nGERMANY",
+                        "name": "Strato GmbH"
+                    },
+                    "network": {
+                        "name": "IONOS SE"
+                    }
+                },
+                "location": {
+                    "province": "State of Berlin",
+                    "city": "Berlin",
+                    "coordinates": {
+                        "latitude": 52.52437,
+                        "longitude": 13.41053
+                    }
+                },
+                "services": [
+                    {
+                        "transport_protocol": "TCP",
+                        "extended_service_name": "HTTP",
+                        "service_name": "HTTP",
+                        "port": 80
+                    },
+                    {
+                        "tls": {
+                            "cipher_selected": "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256",
+                            "version_selected": "TLSv1_2"
+                        },
+                        "transport_protocol": "TCP",
+                        "extended_service_name": "HTTPS",
+                        "service_name": "HTTP",
+                        "port": 443
+                    }
+                ]
+            },
+            {
+                "ip": "2a00:1169:11e:f110:0:0:0:0",
+                "whois": {
+                    "organization": {
+                        "address": "c/o WeWork Wallarkaden\\n50674\\nK\u00f6ln\\nGERMANY",
+                        "name": "Host Europe GmbH"
+                    },
+                    "network": {
+                        "name": "Host Europe GmbH"
+                    }
+                },
+                "location": {
+                    "province": "Grand Est",
+                    "city": "Strasbourg",
+                    "coordinates": {
+                        "latitude": 48.58392,
+                        "longitude": 7.74553
+                    }
+                },
+                "services": [
+                    {
+                        "transport_protocol": "TCP",
+                        "extended_service_name": "HTTP",
+                        "service_name": "HTTP",
+                        "port": 80
+                    },
+                    {
+                        "tls": {
+                            "presented_chain": [
+                                {
+                                    "subject_dn": "C=US, O=Let's Encrypt, CN=R11",
+                                    "issuer_dn": "C=US, O=Internet Security Research Group, CN=ISRG Root X1"
+                                }
+                            ],
+                            "cipher_selected": "TLS_AES_256_GCM_SHA384",
+                            "version_selected": "TLSv1_3"
+                        },
+                        "transport_protocol": "TCP",
+                        "extended_service_name": "HTTPS",
+                        "service_name": "HTTP",
+                        "port": 443
+                    }
+                ]
+            },
+            {
+                "ip": "2a01:239:2be:9c00:0:0:0:1",
+                "whois": {
+                    "organization": {
+                        "address": "Otto-Ostrowski-Stra\u00dfe 7\\n10249\\nBerlin\\nGERMANY",
+                        "name": "Strato GmbH"
+                    },
+                    "network": {
+                        "name": "IONOS SE"
+                    }
+                },
+                "location": {
+                    "province": "State of Berlin",
+                    "city": "Berlin",
+                    "coordinates": {
+                        "latitude": 52.52437,
+                        "longitude": 13.41053
+                    }
+                },
+                "services": [
+                    {
+                        "transport_protocol": "TCP",
+                        "extended_service_name": "HTTP",
+                        "service_name": "HTTP",
+                        "port": 80
+                    },
+                    {
+                        "tls": {
+                            "presented_chain": [
+                                {
+                                    "subject_dn": "C=US, O=Let's Encrypt, CN=E5",
+                                    "issuer_dn": "C=US, O=Internet Security Research Group, CN=ISRG Root X1"
+                                }
+                            ],
+                            "cipher_selected": "TLS_AES_256_GCM_SHA384",
+                            "version_selected": "TLSv1_3"
+                        },
+                        "transport_protocol": "TCP",
+                        "extended_service_name": "HTTPS",
+                        "service_name": "HTTP",
+                        "port": 443
+                    }
+                ]
+            },
+            {
+                "ip": "2a12:de40:21:e9ce:0:0:0:0",
+                "whois": {
+                    "organization": {
+                        "address": "Kronenstra\u00dfe 4",
+                        "name": "24fire GmbH"
+                    },
+                    "network": {
+                        "name": "24fire GmbH"
+                    }
+                },
+                "location": {
+                    "province": "State of Berlin",
+                    "city": "Berlin",
+                    "coordinates": {
+                        "latitude": 52.517,
+                        "longitude": 13.3872
+                    }
+                },
+                "services": [
+                    {
+                        "tls": {
+                            "presented_chain": [
+                                {
+                                    "subject_dn": "C=US, O=Let's Encrypt, CN=R11",
+                                    "issuer_dn": "C=US, O=Internet Security Research Group, CN=ISRG Root X1"
+                                }
+                            ],
+                            "cipher_selected": "TLS_CHACHA20_POLY1305_SHA256",
+                            "version_selected": "TLSv1_3"
+                        },
+                        "transport_protocol": "TCP",
+                        "extended_service_name": "HTTPS",
+                        "service_name": "HTTP",
+                        "port": 443
+                    }
+                ]
+            },
+            {
+                "ip": "2a01:239:2a4:a400:0:0:0:1",
+                "whois": {
+                    "organization": {
+                        "address": "Otto-Ostrowski-Stra\u00dfe 7\\n10249\\nBerlin\\nGERMANY",
+                        "name": "Strato GmbH"
+                    },
+                    "network": {
+                        "name": "IONOS SE"
+                    }
+                },
+                "location": {
+                    "province": "State of Berlin",
+                    "city": "Berlin",
+                    "coordinates": {
+                        "latitude": 52.52437,
+                        "longitude": 13.41053
+                    }
+                },
+                "services": [
+                    {
+                        "transport_protocol": "TCP",
+                        "extended_service_name": "HTTP",
+                        "service_name": "HTTP",
+                        "port": 80
+                    },
+                    {
+                        "tls": {
+                            "presented_chain": [
+                                {
+                                    "subject_dn": "C=US, O=Let's Encrypt, CN=R10",
+                                    "issuer_dn": "C=US, O=Internet Security Research Group, CN=ISRG Root X1"
+                                }
+                            ],
+                            "cipher_selected": "TLS_AES_256_GCM_SHA384",
+                            "version_selected": "TLSv1_3"
+                        },
+                        "transport_protocol": "TCP",
+                        "extended_service_name": "HTTPS",
+                        "service_name": "HTTP",
+                        "port": 443
+                    }
+                ]
+            },
+            {
+                "ip": "2a01:4f8:13b:11df:0:0:0:2",
+                "whois": {
+                    "organization": {
+                        "address": "Industriestrasse 25\\nD-91710\\nGunzenhausen\\nGERMANY",
+                        "name": "Hetzner Online GmbH"
+                    },
+                    "network": {
+                        "name": "HOS-474069"
+                    }
+                },
+                "location": {
+                    "province": "Saxony",
+                    "city": "Falkenstein",
+                    "coordinates": {
+                        "latitude": 50.47788,
+                        "longitude": 12.37129
+                    }
+                },
+                "services": [
+                    {
+                        "transport_protocol": "TCP",
+                        "service_name": "HTTP",
+                        "extended_service_name": "HTTP",
+                        "port": 80
+                    },
+                    {
+                        "tls": {
+                            "presented_chain": [
+                                {
+                                    "subject_dn": "C=US, O=Let's Encrypt, CN=R10",
+                                    "issuer_dn": "C=US, O=Internet Security Research Group, CN=ISRG Root X1"
+                                }
+                            ],
+                            "cipher_selected": "TLS_CHACHA20_POLY1305_SHA256",
+                            "version_selected": "TLSv1_3"
+                        },
+                        "transport_protocol": "TCP",
+                        "extended_service_name": "HTTPS",
+                        "service_name": "HTTP",
+                        "port": 443
+                    }
+                ]
+            },
+            {
+                "ip": "2a01:4f8:171:2f2d:0:0:0:2",
+                "whois": {
+                    "organization": {
+                        "address": "Industriestrasse 25\\nD-91710\\nGunzenhausen\\nGERMANY",
+                        "name": "Hetzner Online GmbH"
+                    },
+                    "network": {
+                        "name": "HOS-195375"
+                    }
+                },
+                "location": {
+                    "province": "Saxony",
+                    "city": "Falkenstein",
+                    "coordinates": {
+                        "latitude": 50.47788,
+                        "longitude": 12.37129
+                    }
+                },
+                "services": [
+                    {
+                        "transport_protocol": "TCP",
+                        "extended_service_name": "HTTP",
+                        "service_name": "HTTP",
+                        "port": 80
+                    },
+                    {
+                        "transport_protocol": "TCP",
+                        "tls": {
+                            "presented_chain": [
+                                {
+                                    "subject_dn": "C=US, O=Let's Encrypt, CN=R11",
+                                    "issuer_dn": "C=US, O=Internet Security Research Group, CN=ISRG Root X1"
+                                }
+                            ],
+                            "cipher_selected": "TLS_AES_256_GCM_SHA384",
+                            "version_selected": "TLSv1_3"
+                        },
+                        "extended_service_name": "HTTPS",
+                        "service_name": "HTTP",
+                        "port": 443
+                    }
+                ]
+            },
+            {
+                "ip": "2a01:8640:2:2b:0:0:0:206",
+                "whois": {
+                    "organization": {
+                        "address": "59 Iztochen Blvd. - Kamenitsa Park\\n4000\\nPlovdiv\\nBULGARIA",
+                        "name": "HZ Hosting Ltd"
+                    },
+                    "network": {
+                        "name": "HZ Hosting Ltd"
+                    }
+                },
+                "location": {
+                    "province": "North Holland",
+                    "coordinates": {
+                        "latitude": 52.37403,
+                        "longitude": 4.88969
+                    },
+                    "city": "Amsterdam"
+                },
+                "services": [
+                    {
+                        "tls": {
+                            "presented_chain": [
+                                {
+                                    "subject_dn": "C=GB, ST=Greater Manchester, L=Salford, O=Sectigo Limited, CN=Sectigo RSA Domain Validation Secure Server CA",
+                                    "issuer_dn": "C=US, ST=New Jersey, L=Jersey City, O=The USERTRUST Network, CN=USERTrust RSA Certification Authority"
+                                }
+                            ],
+                            "cipher_selected": "TLS_AES_256_GCM_SHA384",
+                            "version_selected": "TLSv1_3"
+                        },
+                        "transport_protocol": "TCP",
+                        "extended_service_name": "HTTPS",
+                        "service_name": "HTTP",
+                        "port": 443
+                    }
+                ]
+            },
+            {
+                "ip": "2a01:239:2d6:3a00:0:0:0:11",
+                "whois": {
+                    "organization": {
+                        "address": "Otto-Ostrowski-Stra\u00dfe 7\\n10249\\nBerlin\\nGERMANY",
+                        "name": "Strato GmbH"
+                    },
+                    "network": {
+                        "name": "IONOS SE"
+                    }
+                },
+                "location": {
+                    "province": "State of Berlin",
+                    "city": "Berlin",
+                    "coordinates": {
+                        "latitude": 52.52437,
+                        "longitude": 13.41053
+                    }
+                },
+                "services": [
+                    {
+                        "transport_protocol": "TCP",
+                        "service_name": "HTTP",
+                        "extended_service_name": "HTTP",
+                        "port": 80
+                    },
+                    {
+                        "transport_protocol": "TCP",
+                        "tls": {
+                            "presented_chain": [
+                                {
+                                    "subject_dn": "C=US, O=Let's Encrypt, CN=R11",
+                                    "issuer_dn": "C=US, O=Internet Security Research Group, CN=ISRG Root X1"
+                                }
+                            ],
+                            "cipher_selected": "TLS_AES_256_GCM_SHA384",
+                            "version_selected": "TLSv1_3"
+                        },
+                        "extended_service_name": "HTTPS",
+                        "service_name": "HTTP",
+                        "port": 443
+                    }
+                ]
+            },
+            {
+                "ip": "2607:f1c0:f026:3d00:0:0:1:2",
+                "location": {
+                    "province": "Missouri",
+                    "city": "Kansas City",
+                    "coordinates": {
+                        "latitude": 39.09973,
+                        "longitude": -94.57857
+                    }
+                },
+                "whois": {
+                    "organization": {
+                        "name": "IONOS Inc."
+                    },
+                    "network": {
+                        "name": "IONOS Inc."
+                    }
+                },
+                "services": [
+                    {
+                        "transport_protocol": "TCP",
+                        "extended_service_name": "HTTP",
+                        "service_name": "HTTP",
+                        "port": 80
+                    },
+                    {
+                        "tls": {
+                            "presented_chain": [
+                                {
+                                    "subject_dn": "C=US, O=Let's Encrypt, CN=R11",
+                                    "issuer_dn": "C=US, O=Internet Security Research Group, CN=ISRG Root X1"
+                                }
+                            ],
+                            "cipher_selected": "TLS_AES_256_GCM_SHA384",
+                            "version_selected": "TLSv1_3"
+                        },
+                        "transport_protocol": "TCP",
+                        "service_name": "HTTP",
+                        "extended_service_name": "HTTPS",
+                        "port": 443
+                    }
+                ]
+            },
+            {
+                "ip": "2a01:4f8:2200:2b1b:0:0:0:14",
+                "whois": {
+                    "organization": {
+                        "address": "Industriestrasse 25\\nD-91710\\nGunzenhausen\\nGERMANY",
+                        "name": "Hetzner Online GmbH"
+                    },
+                    "network": {
+                        "name": "HOS-2028760"
+                    }
+                },
+                "location": {
+                    "province": "Saxony",
+                    "city": "Falkenstein",
+                    "coordinates": {
+                        "latitude": 50.47788,
+                        "longitude": 12.37129
+                    }
+                },
+                "services": [
+                    {
+                        "transport_protocol": "TCP",
+                        "extended_service_name": "HTTP",
+                        "service_name": "HTTP",
+                        "port": 80
+                    },
+                    {
+                        "tls": {
+                            "presented_chain": [
+                                {
+                                    "subject_dn": "C=US, O=Let's Encrypt, CN=R11",
+                                    "issuer_dn": "C=US, O=Internet Security Research Group, CN=ISRG Root X1"
+                                }
+                            ],
+                            "cipher_selected": "TLS_CHACHA20_POLY1305_SHA256",
+                            "version_selected": "TLSv1_3"
+                        },
+                        "transport_protocol": "TCP",
+                        "extended_service_name": "HTTPS",
+                        "service_name": "HTTP",
+                        "port": 443
+                    }
+                ]
+            },
+            {
+                "ip": "2a00:1169:119:5270:0:0:0:0",
+                "whois": {
+                    "organization": {
+                        "address": "c/o WeWork Wallarkaden\\n50674\\nK\u00f6ln\\nGERMANY",
+                        "name": "Host Europe GmbH"
+                    },
+                    "network": {
+                        "name": "Host Europe GmbH"
+                    }
+                },
+                "location": {
+                    "province": "Grand Est",
+                    "city": "Strasbourg",
+                    "coordinates": {
+                        "latitude": 48.58392,
+                        "longitude": 7.74553
+                    }
+                },
+                "services": [
+                    {
+                        "transport_protocol": "TCP",
+                        "extended_service_name": "HTTP",
+                        "service_name": "HTTP",
+                        "port": 80
+                    },
+                    {
+                        "tls": {
+                            "presented_chain": [
+                                {
+                                    "subject_dn": "C=US, ST=Arizona, L=Scottsdale, O=Starfield Technologies\\, Inc., OU=http://certs.starfieldtech.com/repository/, CN=Starfield Secure Certificate Authority - G2",
+                                    "issuer_dn": "C=US, ST=Arizona, L=Scottsdale, O=Starfield Technologies\\, Inc., CN=Starfield Root Certificate Authority - G2"
+                                }
+                            ],
+                            "cipher_selected": "TLS_AES_256_GCM_SHA384",
+                            "version_selected": "TLSv1_3"
+                        },
+                        "transport_protocol": "TCP",
+                        "extended_service_name": "HTTPS",
+                        "service_name": "HTTP",
+                        "port": 443
+                    }
+                ]
+            },
+            {
+                "ip": "2a02:fc8:1:1:0:0:2:12a",
+                "whois": {
+                    "organization": {
+                        "address": "Hans-Resel-Gasse 17\\n8020\\nGraz\\nAUSTRIA",
+                        "name": "abaton EDV-Dienstleistungs GmbH"
+                    },
+                    "network": {
+                        "name": "abaton EDV-Dienstleistungs GmbH"
+                    }
+                },
+                "location": {
+                    "province": "Burgenland",
+                    "city": "Eisenstadt",
+                    "coordinates": {
+                        "latitude": 47.84565,
+                        "longitude": 16.52327
+                    }
+                },
+                "services": [
+                    {
+                        "transport_protocol": "TCP",
+                        "extended_service_name": "HTTP",
+                        "service_name": "HTTP",
+                        "port": 80
+                    },
+                    {
+                        "tls": {
+                            "cipher_selected": "TLS_AES_256_GCM_SHA384",
+                            "version_selected": "TLSv1_3"
+                        },
+                        "transport_protocol": "TCP",
+                        "extended_service_name": "HTTPS",
+                        "service_name": "HTTP",
+                        "port": 443
+                    }
+                ]
+            },
+            {
+                "ip": "2a01:239:263:2300:0:0:0:1",
+                "whois": {
+                    "organization": {
+                        "address": "Otto-Ostrowski-Stra\u00dfe 7\\n10249\\nBerlin\\nGERMANY",
+                        "name": "Strato GmbH"
+                    },
+                    "network": {
+                        "name": "IONOS SE"
+                    }
+                },
+                "location": {
+                    "province": "State of Berlin",
+                    "city": "Berlin",
+                    "coordinates": {
+                        "latitude": 52.52437,
+                        "longitude": 13.41053
+                    }
+                },
+                "services": [
+                    {
+                        "transport_protocol": "TCP",
+                        "extended_service_name": "HTTP",
+                        "service_name": "HTTP",
+                        "port": 80
+                    },
+                    {
+                        "tls": {
+                            "cipher_selected": "TLS_AES_256_GCM_SHA384",
+                            "version_selected": "TLSv1_3"
+                        },
+                        "transport_protocol": "TCP",
+                        "extended_service_name": "HTTPS",
+                        "service_name": "HTTP",
+                        "port": 443
+                    }
+                ]
+            },
+            {
+                "ip": "2a01:239:33f:8100:0:0:0:1",
+                "whois": {
+                    "organization": {
+                        "address": "Otto-Ostrowski-Stra\u00dfe 7\\n10249\\nBerlin\\nGERMANY",
+                        "name": "Strato GmbH"
+                    },
+                    "network": {
+                        "name": "IONOS SE"
+                    }
+                },
+                "location": {
+                    "province": "State of Berlin",
+                    "city": "Berlin",
+                    "coordinates": {
+                        "latitude": 52.52437,
+                        "longitude": 13.41053
+                    }
+                },
+                "services": [
+                    {
+                        "transport_protocol": "TCP",
+                        "extended_service_name": "HTTP",
+                        "service_name": "HTTP",
+                        "port": 80
+                    },
+                    {
+                        "tls": {
+                            "cipher_selected": "TLS_AES_256_GCM_SHA384",
+                            "version_selected": "TLSv1_3"
+                        },
+                        "transport_protocol": "TCP",
+                        "extended_service_name": "HTTPS",
+                        "service_name": "HTTP",
+                        "port": 443
+                    }
+                ]
+            },
+            {
+                "ip": "2001:ba0:276:8a00:0:0:0:1",
+                "whois": {
+                    "organization": {
+                        "address": "C/ Madre de Dios n\u00ba 21, 26004, Logro\u00f1o (La Rioja) Spain\\n26004\\nLogro\u00f1o\\nSPAIN",
+                        "name": "ARSYS INTERNET S.L.U."
+                    },
+                    "network": {
+                        "name": "ARSYS INTERNET S.L.U."
+                    }
+                },
+                "location": {
+                    "province": "La Rioja",
+                    "city": "Logro\u00f1o",
+                    "coordinates": {
+                        "latitude": 42.46667,
+                        "longitude": -2.45
+                    }
+                },
+                "services": [
+                    {
+                        "transport_protocol": "TCP",
+                        "extended_service_name": "HTTP",
+                        "service_name": "HTTP",
+                        "port": 80
+                    },
+                    {
+                        "tls": {
+                            "presented_chain": [
+                                {
+                                    "subject_dn": "C=US, O=Let's Encrypt, CN=R10",
+                                    "issuer_dn": "C=US, O=Internet Security Research Group, CN=ISRG Root X1"
+                                }
+                            ],
+                            "cipher_selected": "TLS_AES_256_GCM_SHA384",
+                            "version_selected": "TLSv1_3"
+                        },
+                        "transport_protocol": "TCP",
+                        "extended_service_name": "HTTPS",
+                        "service_name": "HTTP",
+                        "port": 443
+                    }
+                ]
+            },
+            {
+                "ip": "2a02:c207:2026:6188:0:0:0:1",
+                "whois": {
+                    "organization": {
+                        "address": "Aschauer Strasse 32a\\n81549\\nMunchen\\nGERMANY",
+                        "name": "Contabo GmbH"
+                    },
+                    "network": {
+                        "name": "Contabo GmbH"
+                    }
+                },
+                "location": {
+                    "province": "Hesse",
+                    "city": "Frankfurt am Main",
+                    "coordinates": {
+                        "latitude": 50.11552,
+                        "longitude": 8.68417
+                    }
+                },
+                "services": [
+                    {
+                        "transport_protocol": "TCP",
+                        "extended_service_name": "HTTP",
+                        "service_name": "HTTP",
+                        "port": 80
+                    },
+                    {
+                        "tls": {
+                            "presented_chain": [
+                                {
+                                    "subject_dn": "C=US, O=Let's Encrypt, CN=R10",
+                                    "issuer_dn": "C=US, O=Internet Security Research Group, CN=ISRG Root X1"
+                                }
+                            ],
+                            "cipher_selected": "TLS_AES_256_GCM_SHA384",
+                            "version_selected": "TLSv1_3"
+                        },
+                        "transport_protocol": "TCP",
+                        "extended_service_name": "HTTPS",
+                        "service_name": "HTTP",
+                        "port": 443
+                    }
+                ]
+            },
+            {
+                "ip": "2a00:1169:11e:dba0:0:0:0:0",
+                "whois": {
+                    "organization": {
+                        "address": "c/o WeWork Wallarkaden\\n50674\\nK\u00f6ln\\nGERMANY",
+                        "name": "Host Europe GmbH"
+                    },
+                    "network": {
+                        "name": "Host Europe GmbH"
+                    }
+                },
+                "location": {
+                    "province": "Grand Est",
+                    "city": "Strasbourg",
+                    "coordinates": {
+                        "latitude": 48.58392,
+                        "longitude": 7.74553
+                    }
+                },
+                "services": [
+                    {
+                        "transport_protocol": "TCP",
+                        "service_name": "HTTP",
+                        "extended_service_name": "HTTP",
+                        "port": 80
+                    },
+                    {
+                        "tls": {
+                            "presented_chain": [
+                                {
+                                    "subject_dn": "C=US, O=Let's Encrypt, CN=R10",
+                                    "issuer_dn": "C=US, O=Internet Security Research Group, CN=ISRG Root X1"
+                                }
+                            ],
+                            "cipher_selected": "TLS_AES_256_GCM_SHA384",
+                            "version_selected": "TLSv1_3"
+                        },
+                        "transport_protocol": "TCP",
+                        "extended_service_name": "HTTPS",
+                        "service_name": "HTTP",
+                        "port": 443
+                    }
+                ]
+            },
+            {
+                "ip": "2001:1af8:8110:a00c:2:0:0:49",
+                "whois": {
+                    "organization": {
+                        "address": "Postbus 93054\\n1090BB\\nAmsterdam\\nNETHERLANDS",
+                        "name": "LeaseWeb Netherlands B.V."
+                    },
+                    "network": {
+                        "name": "LeaseWeb Netherlands B.V."
+                    }
+                },
+                "location": {
+                    "province": "North Holland",
+                    "city": "Amsterdam",
+                    "coordinates": {
+                        "latitude": 52.37403,
+                        "longitude": 4.88969
+                    }
+                },
+                "services": [
+                    {
+                        "transport_protocol": "TCP",
+                        "service_name": "HTTP",
+                        "extended_service_name": "HTTP",
+                        "port": 80
+                    },
+                    {
+                        "tls": {
+                            "presented_chain": [
+                                {
+                                    "subject_dn": "C=US, O=Let's Encrypt, CN=R10",
+                                    "issuer_dn": "C=US, O=Internet Security Research Group, CN=ISRG Root X1"
+                                }
+                            ],
+                            "cipher_selected": "TLS_AES_256_GCM_SHA384",
+                            "version_selected": "TLSv1_3"
+                        },
+                        "transport_protocol": "TCP",
+                        "extended_service_name": "HTTPS",
+                        "service_name": "HTTP",
+                        "port": 443
+                    }
+                ]
+            },
+            {
+                "ip": "2a01:4f8:c012:133f:0:0:0:1",
+                "whois": {
+                    "organization": {
+                        "address": "Industriestrasse 25\\nD-91710\\nGunzenhausen\\nGERMANY",
+                        "name": "Hetzner Online GmbH"
+                    },
+                    "network": {
+                        "name": "Hetzner Online GmbH"
+                    }
+                },
+                "location": {
+                    "province": "Saxony",
+                    "city": "Falkenstein",
+                    "coordinates": {
+                        "latitude": 50.47788,
+                        "longitude": 12.37129
+                    }
+                },
+                "services": [
+                    {
+                        "transport_protocol": "TCP",
+                        "extended_service_name": "HTTP",
+                        "service_name": "HTTP",
+                        "port": 80
+                    },
+                    {
+                        "tls": {
+                            "presented_chain": [
+                                {
+                                    "subject_dn": "C=US, O=Let's Encrypt, CN=R10",
+                                    "issuer_dn": "C=US, O=Internet Security Research Group, CN=ISRG Root X1"
+                                }
+                            ],
+                            "cipher_selected": "TLS_CHACHA20_POLY1305_SHA256",
+                            "version_selected": "TLSv1_3"
+                        },
+                        "transport_protocol": "TCP",
+                        "extended_service_name": "HTTPS",
+                        "service_name": "HTTP",
+                        "port": 443
+                    }
+                ]
+            },
+            {
+                "ip": "2a00:da00:f43c:4500:0:0:0:1",
+                "whois": {
+                    "organization": {
+                        "address": "2 Cathedral Walk, The Forum\\nGL1 1AU\\nGloucester\\nUNITED KINGDOM",
+                        "name": "Fasthosts Internet Limited"
+                    },
+                    "network": {
+                        "name": "IONOS SE"
+                    }
+                },
+                "location": {
+                    "province": "England",
+                    "city": "Grantham",
+                    "coordinates": {
+                        "latitude": 52.91149,
+                        "longitude": -0.64184
+                    }
+                },
+                "services": [
+                    {
+                        "transport_protocol": "TCP",
+                        "extended_service_name": "HTTP",
+                        "service_name": "HTTP",
+                        "port": 80
+                    },
+                    {
+                        "tls": {
+                            "presented_chain": [
+                                {
+                                    "subject_dn": "C=US, O=Let's Encrypt, CN=R11",
+                                    "issuer_dn": "C=US, O=Internet Security Research Group, CN=ISRG Root X1"
+                                }
+                            ],
+                            "cipher_selected": "TLS_AES_256_GCM_SHA384",
+                            "version_selected": "TLSv1_3"
+                        },
+                        "transport_protocol": "TCP",
+                        "extended_service_name": "HTTPS",
+                        "service_name": "HTTP",
+                        "port": 443
+                    }
+                ]
+            },
+            {
+                "ip": "2a01:7c8:bb0a:83:5054:ff:fef0:8108",
+                "whois": {
+                    "organization": {
+                        "address": "Achtseweg Zuid 241 B\\n5651GW\\nEindhoven\\nNETHERLANDS",
+                        "name": "Signet B.V."
+                    },
+                    "network": {
+                        "name": "TransIP BV"
+                    }
+                },
+                "location": {
+                    "province": "Flevoland",
+                    "city": "Lelystad",
+                    "coordinates": {
+                        "latitude": 52.50833,
+                        "longitude": 5.475
+                    }
+                },
+                "services": [
+                    {
+                        "transport_protocol": "TCP",
+                        "extended_service_name": "HTTP",
+                        "service_name": "HTTP",
+                        "port": 80
+                    },
+                    {
+                        "tls": {
+                            "presented_chain": [
+                                {
+                                    "subject_dn": "C=US, O=Let's Encrypt, CN=R10",
+                                    "issuer_dn": "C=US, O=Internet Security Research Group, CN=ISRG Root X1"
+                                }
+                            ],
+                            "cipher_selected": "TLS_AES_256_GCM_SHA384",
+                            "version_selected": "TLSv1_3"
+                        },
+                        "transport_protocol": "TCP",
+                        "service_name": "HTTP",
+                        "extended_service_name": "HTTPS",
+                        "port": 443
+                    }
+                ]
+            },
+            {
+                "ip": "2607:f1c0:856:3c00:0:0:16:e172",
+                "whois": {
+                    "organization": {
+                        "name": "IONOS Inc."
+                    },
+                    "network": {
+                        "name": "IONOS Inc."
+                    }
+                },
+                "location": {
+                    "province": "Missouri",
+                    "coordinates": {
+                        "latitude": 39.09973,
+                        "longitude": -94.57857
+                    },
+                    "city": "Kansas City"
+                },
+                "services": [
+                    {
+                        "transport_protocol": "TCP",
+                        "extended_service_name": "HTTP",
+                        "service_name": "HTTP",
+                        "port": 80
+                    },
+                    {
+                        "tls": {
+                            "presented_chain": [
+                                {
+                                    "subject_dn": "C=US, O=Let's Encrypt, CN=R10",
+                                    "issuer_dn": "C=US, O=Internet Security Research Group, CN=ISRG Root X1"
+                                }
+                            ],
+                            "cipher_selected": "TLS_CHACHA20_POLY1305_SHA256",
+                            "version_selected": "TLSv1_3"
+                        },
+                        "transport_protocol": "TCP",
+                        "extended_service_name": "HTTPS",
+                        "service_name": "HTTP",
+                        "port": 443
+                    }
+                ]
+            },
+            {
+                "ip": "2607:f1c0:f03b:7500:0:0:0:1",
+                "whois": {
+                    "organization": {
+                        "name": "IONOS Inc."
+                    },
+                    "network": {
+                        "name": "IONOS Inc."
+                    }
+                },
+                "location": {
+                    "province": "Missouri",
+                    "city": "Kansas City",
+                    "coordinates": {
+                        "latitude": 39.09973,
+                        "longitude": -94.57857
+                    }
+                },
+                "services": [
+                    {
+                        "transport_protocol": "TCP",
+                        "extended_service_name": "HTTP",
+                        "service_name": "HTTP",
+                        "port": 80
+                    },
+                    {
+                        "tls": {
+                            "presented_chain": [
+                                {
+                                    "subject_dn": "C=US, ST=Arizona, L=Scottsdale, O=GoDaddy.com\\, Inc., OU=http://certs.godaddy.com/repository/, CN=Go Daddy Secure Certificate Authority - G2",
+                                    "issuer_dn": "C=US, ST=Arizona, L=Scottsdale, O=GoDaddy.com\\, Inc., CN=Go Daddy Root Certificate Authority - G2"
+                                },
+                                {
+                                    "subject_dn": "C=US, ST=Arizona, L=Scottsdale, O=GoDaddy.com\\, Inc., CN=Go Daddy Root Certificate Authority - G2",
+                                    "issuer_dn": "C=US, O=The Go Daddy Group\\, Inc., OU=Go Daddy Class 2 Certification Authority"
+                                },
+                                {
+                                    "subject_dn": "C=US, O=The Go Daddy Group\\, Inc., OU=Go Daddy Class 2 Certification Authority",
+                                    "issuer_dn": "C=US, O=The Go Daddy Group\\, Inc., OU=Go Daddy Class 2 Certification Authority"
+                                }
+                            ],
+                            "cipher_selected": "TLS_AES_256_GCM_SHA384",
+                            "version_selected": "TLSv1_3"
+                        },
+                        "transport_protocol": "TCP",
+                        "extended_service_name": "HTTPS",
+                        "service_name": "HTTP",
+                        "port": 443
+                    }
+                ]
+            },
+            {
+                "ip": "2a00:1169:110:1920:0:0:0:0",
+                "whois": {
+                    "organization": {
+                        "address": "c/o WeWork Wallarkaden\\n50674\\nK\u00f6ln\\nGERMANY",
+                        "name": "Host Europe GmbH"
+                    },
+                    "network": {
+                        "name": "Host Europe GmbH"
+                    }
+                },
+                "location": {
+                    "province": "Grand Est",
+                    "city": "Strasbourg",
+                    "coordinates": {
+                        "latitude": 48.58392,
+                        "longitude": 7.74553
+                    }
+                },
+                "services": [
+                    {
+                        "transport_protocol": "TCP",
+                        "extended_service_name": "HTTP",
+                        "service_name": "HTTP",
+                        "port": 80
+                    },
+                    {
+                        "tls": {
+                            "presented_chain": [
+                                {
+                                    "subject_dn": "C=US, O=Let's Encrypt, CN=R10",
+                                    "issuer_dn": "C=US, O=Internet Security Research Group, CN=ISRG Root X1"
+                                }
+                            ],
+                            "cipher_selected": "TLS_AES_256_GCM_SHA384",
+                            "version_selected": "TLSv1_3"
+                        },
+                        "transport_protocol": "TCP",
+                        "extended_service_name": "HTTPS",
+                        "service_name": "HTTP",
+                        "port": 443
+                    }
+                ]
+            },
+            {
+                "ip": "2a01:239:2e9:ea00:0:0:0:1",
+                "whois": {
+                    "organization": {
+                        "address": "Otto-Ostrowski-Stra\u00dfe 7\\n10249\\nBerlin\\nGERMANY",
+                        "name": "Strato GmbH"
+                    },
+                    "network": {
+                        "name": "IONOS SE"
+                    }
+                },
+                "location": {
+                    "province": "State of Berlin",
+                    "city": "Berlin",
+                    "coordinates": {
+                        "latitude": 52.52437,
+                        "longitude": 13.41053
+                    }
+                },
+                "services": [
+                    {
+                        "transport_protocol": "TCP",
+                        "extended_service_name": "HTTP",
+                        "service_name": "HTTP",
+                        "port": 80
+                    },
+                    {
+                        "tls": {
+                            "presented_chain": [
+                                {
+                                    "subject_dn": "C=US, O=Let's Encrypt, CN=R11",
+                                    "issuer_dn": "C=US, O=Internet Security Research Group, CN=ISRG Root X1"
+                                }
+                            ],
+                            "cipher_selected": "TLS_CHACHA20_POLY1305_SHA256",
+                            "version_selected": "TLSv1_3"
+                        },
+                        "transport_protocol": "TCP",
+                        "extended_service_name": "HTTPS",
+                        "service_name": "HTTP",
+                        "port": 443
+                    }
+                ]
+            },
+            {
+                "ip": "2a01:239:2cd:7700:0:0:0:1",
+                "whois": {
+                    "organization": {
+                        "address": "Otto-Ostrowski-Stra\u00dfe 7\\n10249\\nBerlin\\nGERMANY",
+                        "name": "Strato GmbH"
+                    },
+                    "network": {
+                        "name": "IONOS SE"
+                    }
+                },
+                "location": {
+                    "province": "State of Berlin",
+                    "city": "Berlin",
+                    "coordinates": {
+                        "latitude": 52.52437,
+                        "longitude": 13.41053
+                    }
+                },
+                "services": [
+                    {
+                        "transport_protocol": "TCP",
+                        "extended_service_name": "HTTP",
+                        "service_name": "HTTP",
+                        "port": 80
+                    },
+                    {
+                        "transport_protocol": "TCP",
+                        "tls": {
+                            "cipher_selected": "TLS_AES_256_GCM_SHA384",
+                            "version_selected": "TLSv1_3"
+                        },
+                        "extended_service_name": "HTTPS",
+                        "service_name": "HTTP",
+                        "port": 443
+                    }
+                ]
+            },
+            {
+                "ip": "2001:1af8:8110:a00c:2:0:0:39",
+                "location": {
+                    "province": "North Holland",
+                    "coordinates": {
+                        "latitude": 52.37403,
+                        "longitude": 4.88969
+                    },
+                    "city": "Amsterdam"
+                },
+                "whois": {
+                    "organization": {
+                        "address": "Postbus 93054\\n1090BB\\nAmsterdam\\nNETHERLANDS",
+                        "name": "LeaseWeb Netherlands B.V."
+                    },
+                    "network": {
+                        "name": "LeaseWeb Netherlands B.V."
+                    }
+                },
+                "services": [
+                    {
+                        "transport_protocol": "TCP",
+                        "extended_service_name": "HTTP",
+                        "service_name": "HTTP",
+                        "port": 80
+                    },
+                    {
+                        "tls": {
+                            "presented_chain": [
+                                {
+                                    "subject_dn": "C=US, O=Let's Encrypt, CN=R10",
+                                    "issuer_dn": "C=US, O=Internet Security Research Group, CN=ISRG Root X1"
+                                }
+                            ],
+                            "cipher_selected": "TLS_AES_256_GCM_SHA384",
+                            "version_selected": "TLSv1_3"
+                        },
+                        "transport_protocol": "TCP",
+                        "service_name": "HTTP",
+                        "extended_service_name": "HTTPS",
+                        "port": 443
+                    }
+                ]
+            },
+            {
+                "ip": "2a01:4f8:222:691:0:0:0:9",
+                "whois": {
+                    "organization": {
+                        "address": "Industriestrasse 25\\nD-91710\\nGunzenhausen\\nGERMANY",
+                        "name": "Hetzner Online GmbH"
+                    },
+                    "network": {
+                        "name": "Kommunity GmbH & Co. KG"
+                    }
+                },
+                "location": {
+                    "province": "Saxony",
+                    "coordinates": {
+                        "latitude": 50.47788,
+                        "longitude": 12.37129
+                    },
+                    "city": "Falkenstein"
+                },
+                "services": [
+                    {
+                        "transport_protocol": "TCP",
+                        "extended_service_name": "HTTP",
+                        "service_name": "HTTP",
+                        "port": 80
+                    },
+                    {
+                        "tls": {
+                            "presented_chain": [
+                                {
+                                    "subject_dn": "C=US, O=Let's Encrypt, CN=R10",
+                                    "issuer_dn": "C=US, O=Internet Security Research Group, CN=ISRG Root X1"
+                                }
+                            ],
+                            "cipher_selected": "TLS_AES_256_GCM_SHA384",
+                            "version_selected": "TLSv1_3"
+                        },
+                        "transport_protocol": "TCP",
+                        "service_name": "HTTP",
+                        "extended_service_name": "HTTPS",
+                        "port": 443
+                    }
+                ]
+            },
+            {
+                "ip": "2a02:2b80:101:104:0:0:0:c07",
+                "whois": {
+                    "organization": {
+                        "address": "Antonio-Segni-Stra\u00dfe 11\\n44263\\nDortmund\\nGERMANY",
+                        "name": "dogado GmbH"
+                    },
+                    "network": {
+                        "name": "dogado GmbH"
+                    }
+                },
+                "location": {
+                    "province": "North Rhine-Westphalia",
+                    "city": "Bochum",
+                    "coordinates": {
+                        "latitude": 51.48165,
+                        "longitude": 7.21648
+                    }
+                },
+                "services": [
+                    {
+                        "transport_protocol": "TCP",
+                        "extended_service_name": "HTTP",
+                        "service_name": "HTTP",
+                        "port": 80
+                    },
+                    {
+                        "tls": {
+                            "presented_chain": [
+                                {
+                                    "subject_dn": "C=US, O=CloudFlare\\, Inc., OU=CloudFlare Origin SSL Certificate Authority, L=San Francisco, ST=California",
+                                    "issuer_dn": "C=US, O=CloudFlare\\, Inc., OU=CloudFlare Origin SSL Certificate Authority, L=San Francisco, ST=California"
+                                }
+                            ],
+                            "cipher_selected": "TLS_CHACHA20_POLY1305_SHA256",
+                            "version_selected": "TLSv1_3"
+                        },
+                        "transport_protocol": "TCP",
+                        "service_name": "HTTP",
+                        "extended_service_name": "HTTPS",
+                        "port": 443
+                    }
+                ]
+            },
+            {
+                "ip": "2a01:7860:0:0:db:7302:1:1",
+                "whois": {
+                    "organization": {
+                        "address": "Achtseweg Zuid 241 B\\n5651GW\\nEindhoven\\nNETHERLANDS",
+                        "name": "Signet B.V."
+                    },
+                    "network": {
+                        "name": "Signet B.V."
+                    }
+                },
+                "location": {
+                    "province": "North Holland",
+                    "coordinates": {
+                        "latitude": 52.37403,
+                        "longitude": 4.88969
+                    },
+                    "city": "Amsterdam"
+                },
+                "services": [
+                    {
+                        "transport_protocol": "TCP",
+                        "extended_service_name": "HTTP",
+                        "service_name": "HTTP",
+                        "port": 80
+                    },
+                    {
+                        "transport_protocol": "TCP",
+                        "tls": {
+                            "presented_chain": [
+                                {
+                                    "subject_dn": "C=GB, ST=Greater Manchester, L=Salford, O=Sectigo Limited, CN=Sectigo RSA Domain Validation Secure Server CA",
+                                    "issuer_dn": "C=US, ST=New Jersey, L=Jersey City, O=The USERTRUST Network, CN=USERTrust RSA Certification Authority"
+                                },
+                                {
+                                    "subject_dn": "C=US, ST=New Jersey, L=Jersey City, O=The USERTRUST Network, CN=USERTrust RSA Certification Authority",
+                                    "issuer_dn": "C=US, ST=New Jersey, L=Jersey City, O=The USERTRUST Network, CN=USERTrust RSA Certification Authority"
+                                }
+                            ],
+                            "cipher_selected": "TLS_AES_256_GCM_SHA384",
+                            "version_selected": "TLSv1_3"
+                        },
+                        "extended_service_name": "HTTPS",
+                        "service_name": "HTTP",
+                        "port": 443
+                    }
+                ]
+            },
+            {
+                "ip": "2a02:c207:3001:6548:0:0:0:2",
+                "location": {
+                    "province": "Hesse",
+                    "city": "Frankfurt am Main",
+                    "coordinates": {
+                        "latitude": 50.11552,
+                        "longitude": 8.68417
+                    }
+                },
+                "whois": {
+                    "organization": {
+                        "address": "Aschauer Strasse 32a\\n81549\\nMunchen\\nGERMANY",
+                        "name": "Contabo GmbH"
+                    },
+                    "network": {
+                        "name": "Contabo GmbH"
+                    }
+                },
+                "services": [
+                    {
+                        "transport_protocol": "TCP",
+                        "extended_service_name": "HTTP",
+                        "service_name": "HTTP",
+                        "port": 80
+                    },
+                    {
+                        "tls": {
+                            "presented_chain": [
+                                {
+                                    "subject_dn": "C=US, O=Let's Encrypt, CN=R11",
+                                    "issuer_dn": "C=US, O=Internet Security Research Group, CN=ISRG Root X1"
+                                }
+                            ],
+                            "cipher_selected": "TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384",
+                            "version_selected": "TLSv1_2"
+                        },
+                        "transport_protocol": "TCP",
+                        "extended_service_name": "HTTPS",
+                        "service_name": "HTTP",
+                        "port": 443
+                    }
+                ]
+            },
+            {
+                "ip": "2a02:c206:2085:3991:0:0:0:1",
+                "location": {
+                    "province": "Hesse",
+                    "city": "Frankfurt am Main",
+                    "coordinates": {
+                        "latitude": 50.11552,
+                        "longitude": 8.68417
+                    }
+                },
+                "whois": {
+                    "organization": {
+                        "address": "Aschauer Strasse 32a\\n81549\\nMunchen\\nGERMANY",
+                        "name": "Contabo GmbH"
+                    },
+                    "network": {
+                        "name": "Contabo GmbH"
+                    }
+                },
+                "services": [
+                    {
+                        "transport_protocol": "TCP",
+                        "extended_service_name": "HTTP",
+                        "service_name": "HTTP",
+                        "port": 80
+                    },
+                    {
+                        "tls": {
+                            "presented_chain": [
+                                {
+                                    "subject_dn": "C=US, O=Let's Encrypt, CN=R10",
+                                    "issuer_dn": "C=US, O=Internet Security Research Group, CN=ISRG Root X1"
+                                }
+                            ],
+                            "cipher_selected": "TLS_AES_256_GCM_SHA384",
+                            "version_selected": "TLSv1_3"
+                        },
+                        "transport_protocol": "TCP",
+                        "extended_service_name": "HTTPS",
+                        "service_name": "HTTP",
+                        "port": 443
+                    }
+                ]
+            },
+            {
+                "ip": "2a02:c207:2045:3232:0:0:0:1",
+                "location": {
+                    "province": "Hesse",
+                    "city": "Frankfurt am Main",
+                    "coordinates": {
+                        "latitude": 50.11552,
+                        "longitude": 8.68417
+                    }
+                },
+                "whois": {
+                    "organization": {
+                        "address": "Aschauer Strasse 32a\\n81549\\nMunchen\\nGERMANY",
+                        "name": "Contabo GmbH"
+                    },
+                    "network": {
+                        "name": "Contabo GmbH"
+                    }
+                },
+                "services": [
+                    {
+                        "transport_protocol": "TCP",
+                        "extended_service_name": "HTTP",
+                        "service_name": "HTTP",
+                        "port": 80
+                    },
+                    {
+                        "transport_protocol": "TCP",
+                        "tls": {
+                            "cipher_selected": "TLS_CHACHA20_POLY1305_SHA256",
+                            "version_selected": "TLSv1_3"
+                        },
+                        "extended_service_name": "HTTPS",
+                        "service_name": "HTTP",
+                        "port": 443
+                    }
+                ]
+            },
+            {
+                "ip": "2a0b:fb00:9:0:91:230:22:73",
+                "location": {
+                    "province": "Hesse",
+                    "coordinates": {
+                        "latitude": 50.11552,
+                        "longitude": 8.68417
+                    },
+                    "city": "Frankfurt am Main"
+                },
+                "whois": {
+                    "organization": {
+                        "address": "Zum Haunert 22\\n59519\\nMoehnesee\\nGERMANY",
+                        "name": "webhoster.de AG"
+                    },
+                    "network": {
+                        "name": "webhoster.de AG"
+                    }
+                },
+                "services": [
+                    {
+                        "transport_protocol": "TCP",
+                        "extended_service_name": "HTTP",
+                        "service_name": "HTTP",
+                        "port": 80
+                    },
+                    {
+                        "tls": {
+                            "presented_chain": [
+                                {
+                                    "subject_dn": "C=US, O=Let's Encrypt, CN=R11",
+                                    "issuer_dn": "C=US, O=Internet Security Research Group, CN=ISRG Root X1"
+                                }
+                            ],
+                            "cipher_selected": "TLS_CHACHA20_POLY1305_SHA256",
+                            "version_selected": "TLSv1_3"
+                        },
+                        "transport_protocol": "TCP",
+                        "extended_service_name": "HTTPS",
+                        "service_name": "HTTP",
+                        "port": 443
+                    }
+                ]
+            },
+            {
+                "ip": "2a01:4f8:c013:6faf:0:0:0:1",
+                "whois": {
+                    "organization": {
+                        "address": "Industriestrasse 25\\nD-91710\\nGunzenhausen\\nGERMANY",
+                        "name": "Hetzner Online GmbH"
+                    },
+                    "network": {
+                        "name": "Hetzner Online GmbH"
+                    }
+                },
+                "location": {
+                    "province": "Saxony",
+                    "city": "Falkenstein",
+                    "coordinates": {
+                        "latitude": 50.47788,
+                        "longitude": 12.37129
+                    }
+                },
+                "services": [
+                    {
+                        "transport_protocol": "TCP",
+                        "extended_service_name": "HTTP",
+                        "service_name": "HTTP",
+                        "port": 80
+                    },
+                    {
+                        "tls": {
+                            "presented_chain": [
+                                {
+                                    "subject_dn": "C=US, O=Let's Encrypt, CN=R11",
+                                    "issuer_dn": "C=US, O=Internet Security Research Group, CN=ISRG Root X1"
+                                }
+                            ],
+                            "cipher_selected": "TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384",
+                            "version_selected": "TLSv1_2"
+                        },
+                        "transport_protocol": "TCP",
+                        "service_name": "HTTP",
+                        "extended_service_name": "HTTPS",
+                        "port": 443
+                    }
+                ]
+            },
+            {
+                "ip": "2a01:239:299:8d00:0:0:0:1",
+                "whois": {
+                    "organization": {
+                        "address": "Otto-Ostrowski-Stra\u00dfe 7\\n10249\\nBerlin\\nGERMANY",
+                        "name": "Strato GmbH"
+                    },
+                    "network": {
+                        "name": "IONOS SE"
+                    }
+                },
+                "location": {
+                    "province": "State of Berlin",
+                    "city": "Berlin",
+                    "coordinates": {
+                        "latitude": 52.52437,
+                        "longitude": 13.41053
+                    }
+                },
+                "services": [
+                    {
+                        "transport_protocol": "TCP",
+                        "service_name": "HTTP",
+                        "extended_service_name": "HTTP",
+                        "port": 80
+                    },
+                    {
+                        "tls": {
+                            "presented_chain": [
+                                {
+                                    "subject_dn": "C=US, O=Let's Encrypt, CN=R11",
+                                    "issuer_dn": "C=US, O=Internet Security Research Group, CN=ISRG Root X1"
+                                }
+                            ],
+                            "cipher_selected": "TLS_AES_256_GCM_SHA384",
+                            "version_selected": "TLSv1_3"
+                        },
+                        "transport_protocol": "TCP",
+                        "extended_service_name": "HTTPS",
+                        "service_name": "HTTP",
+                        "port": 443
+                    }
+                ]
+            },
+            {
+                "ip": "2001:8d8:97b:2200:0:0:24:dc2e",
+                "whois": {
+                    "organization": {
+                        "address": "Hinterm Hauptbahnhof 5\\n76137\\nKarlsruhe\\nGERMANY",
+                        "name": "IONOS SE"
+                    },
+                    "network": {
+                        "name": "1&1 IONOS SE"
+                    }
+                },
+                "location": {
+                    "province": "Baden-Wurttemberg",
+                    "coordinates": {
+                        "latitude": 49.00937,
+                        "longitude": 8.40444
+                    },
+                    "city": "Karlsruhe"
+                },
+                "services": [
+                    {
+                        "transport_protocol": "TCP",
+                        "extended_service_name": "HTTP",
+                        "service_name": "HTTP",
+                        "port": 80
+                    },
+                    {
+                        "tls": {
+                            "presented_chain": [
+                                {
+                                    "subject_dn": "C=US, ST=Arizona, L=Scottsdale, O=Starfield Technologies\\, Inc., OU=http://certs.starfieldtech.com/repository/, CN=Starfield Secure Certificate Authority - G2",
+                                    "issuer_dn": "C=US, ST=Arizona, L=Scottsdale, O=Starfield Technologies\\, Inc., CN=Starfield Root Certificate Authority - G2"
+                                },
+                                {
+                                    "subject_dn": "C=US, ST=Arizona, L=Scottsdale, O=Starfield Technologies\\, Inc., CN=Starfield Root Certificate Authority - G2",
+                                    "issuer_dn": "C=US, O=Starfield Technologies\\, Inc., OU=Starfield Class 2 Certification Authority"
+                                },
+                                {
+                                    "subject_dn": "C=US, O=Starfield Technologies\\, Inc., OU=Starfield Class 2 Certification Authority",
+                                    "issuer_dn": "C=US, O=Starfield Technologies\\, Inc., OU=Starfield Class 2 Certification Authority"
+                                }
+                            ],
+                            "cipher_selected": "TLS_AES_256_GCM_SHA384",
+                            "version_selected": "TLSv1_3"
+                        },
+                        "transport_protocol": "TCP",
+                        "extended_service_name": "HTTPS",
+                        "service_name": "HTTP",
+                        "port": 443
+                    }
+                ]
+            },
+            {
+                "ip": "2a01:488:66:1000:53a9:10d8:0:1",
+                "whois": {
+                    "organization": {
+                        "address": "c/o WeWork Wallarkaden\\n50674\\nK\u00f6ln\\nGERMANY",
+                        "name": "Host Europe GmbH"
+                    },
+                    "network": {
+                        "name": "Host Europe GmbH"
+                    }
+                },
+                "location": {
+                    "province": "Grevenmacher",
+                    "city": "Wecker",
+                    "coordinates": {
+                        "latitude": 49.69473,
+                        "longitude": 6.38525
+                    }
+                },
+                "services": [
+                    {
+                        "transport_protocol": "TCP",
+                        "extended_service_name": "HTTP",
+                        "service_name": "HTTP",
+                        "port": 80
+                    },
+                    {
+                        "tls": {
+                            "cipher_selected": "TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384",
+                            "version_selected": "TLSv1_2"
+                        },
+                        "transport_protocol": "TCP",
+                        "service_name": "HTTP",
+                        "extended_service_name": "HTTPS",
+                        "port": 443
+                    }
+                ]
+            }
+        ],
+        "links": {
+            "next": "eyJhbGciOiJFZERTQSJ9.eyJub25jZSI6IkZVMkQxZG1CSkZ6VnRxNVpqR1dZcHF5eXdGNS9DWXhxa1A0TG4wOS91SzAiLCJwYWdlIjo0LCJyZXZlcnNlZCI6ZmFsc2UsInNlYXJjaF9hZnRlciI6WzcuNjczNTkyLDE3NTA4MzEzODI5MjQsIjJhMDE6NDg4OjY2OjEwMDA6NTNhOToxMGQ4OjA6MSIsbnVsbF0sInNvcnQiOlt7Il9zY29yZSI6eyJvcmRlciI6ImRlc2MifX0seyJsYXN0X3VwZGF0ZWRfYXQiOnsibWlzc2luZyI6Il9sYXN0IiwibW9kZSI6Im1pbiIsIm9yZGVyIjoiZGVzYyJ9fSx7ImlwIjp7Im1pc3NpbmciOiJfbGFzdCIsIm1vZGUiOiJtaW4iLCJvcmRlciI6ImFzYyJ9fSx7Im5hbWUuX19yYXciOnsibWlzc2luZyI6Il9sYXN0IiwibW9kZSI6Im1pbiIsIm9yZGVyIjoiYXNjIn19XSwidmVyc2lvbiI6MX0.yt7Z14KCiYQ4tCweWtZo_NfxPkLKSKkCzPk5r-2tj271ssmHadzCeazloMwl-10xMkCGnXwemNtA5zuJD6pUAA",
+            "prev": "eyJhbGciOiJFZERTQSJ9.eyJub25jZSI6IkZVMkQxZG1CSkZ6VnRxNVpqR1dZcHF5eXdGNS9DWXhxa1A0TG4wOS91SzAiLCJwYWdlIjoyLCJyZXZlcnNlZCI6dHJ1ZSwic2VhcmNoX2FmdGVyIjpbNy42ODA4NzY3LDE3NTA1NTAzNTEyOTMsIjI0MDQ6YzZjMDo6NzgiLG51bGxdLCJzb3J0IjpbeyJfc2NvcmUiOnsib3JkZXIiOiJhc2MifX0seyJsYXN0X3VwZGF0ZWRfYXQiOnsibWlzc2luZyI6Il9maXJzdCIsIm1vZGUiOiJtaW4iLCJvcmRlciI6ImFzYyJ9fSx7ImlwIjp7Im1pc3NpbmciOiJfZmlyc3QiLCJtb2RlIjoibWluIiwib3JkZXIiOiJkZXNjIn19LHsibmFtZS5fX3JhdyI6eyJtaXNzaW5nIjoiX2ZpcnN0IiwibW9kZSI6Im1pbiIsIm9yZGVyIjoiZGVzYyJ9fV0sInZlcnNpb24iOjF9.FjtoX3T7R56cjuIyP1ICpFbCjGsoaTRoBbtpmLE46nPOBtipAv3Lfg-cjg6SOO6uQW2-euHHu8M9_TmTVymrBg"
+        }
+    }
+}

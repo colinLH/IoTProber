@@ -1,0 +1,270 @@
+{
+    "code": 200,
+    "status": "OK",
+    "result": {
+        "query": "(labels: ipv6) and labels = scada",
+        "total": 6,
+        "duration": 58,
+        "hits": [
+            {
+                "ip": "2607:f460:1833:21:0:0:4:0",
+                "whois": {
+                    "organization": {
+                        "name": "Connecticut Education Network"
+                    },
+                    "network": {
+                        "name": "Connecticut Education Network"
+                    }
+                },
+                "location": {
+                    "province": "Connecticut",
+                    "city": "Suffield Depot",
+                    "coordinates": {
+                        "latitude": 41.98121,
+                        "longitude": -72.64981
+                    }
+                },
+                "services": [
+                    {
+                        "transport_protocol": "TCP",
+                        "extended_service_name": "HTTP",
+                        "service_name": "HTTP",
+                        "port": 80
+                    },
+                    {
+                        "tls": {
+                            "presented_chain": [
+                                {
+                                    "subject_dn": "C=US, O=Let's Encrypt, CN=R11",
+                                    "issuer_dn": "C=US, O=Internet Security Research Group, CN=ISRG Root X1"
+                                }
+                            ],
+                            "cipher_selected": "TLS_RSA_WITH_AES_128_CBC_SHA",
+                            "version_selected": "TLSv1_2"
+                        },
+                        "transport_protocol": "TCP",
+                        "extended_service_name": "HTTPS",
+                        "service_name": "HTTP",
+                        "port": 443
+                    }
+                ]
+            },
+            {
+                "ip": "2001:700:300:1420:d984:817f:2d3d:2f5a",
+                "location": {
+                    "province": "Tr\u00f8ndelag",
+                    "city": "Trondheim",
+                    "coordinates": {
+                        "latitude": 63.43049,
+                        "longitude": 10.39506
+                    }
+                },
+                "whois": {
+                    "organization": {
+                        "address": "Kastruplundgade 22,1\\n2770\\nKastrup\\nDENMARK",
+                        "name": "SIKT - KUNNSKAPSSEKTORENS TJENESTELEVERANDOR"
+                    },
+                    "network": {
+                        "name": "Norges teknisk-naturvitenskapelige Universitet, Norway"
+                    }
+                },
+                "services": [
+                    {
+                        "transport_protocol": "TCP",
+                        "extended_service_name": "HTTP",
+                        "service_name": "HTTP",
+                        "port": 80
+                    },
+                    {
+                        "tls": {
+                            "cipher_selected": "TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384",
+                            "version_selected": "TLSv1_2"
+                        },
+                        "transport_protocol": "TCP",
+                        "service_name": "HTTP",
+                        "extended_service_name": "HTTPS",
+                        "port": 443
+                    },
+                    {
+                        "transport_protocol": "TCP",
+                        "extended_service_name": "OPC_UA",
+                        "service_name": "OPC_UA",
+                        "port": 4840
+                    }
+                ]
+            },
+            {
+                "ip": "2a01:6400:103:1:0:0:0:19",
+                "whois": {
+                    "organization": {
+                        "address": "Vojtesska 17\\n110 00\\nPraha 1\\nCZECH REPUBLIC",
+                        "name": "WIA spol. s.r.o."
+                    },
+                    "network": {
+                        "name": "NEWLINK s.r.o."
+                    }
+                },
+                "location": {
+                    "province": "Prague",
+                    "city": "Prague",
+                    "coordinates": {
+                        "latitude": 50.08804,
+                        "longitude": 14.42076
+                    }
+                },
+                "operating_system": {
+                    "version": "6.9.4"
+                },
+                "services": [
+                    {
+                        "transport_protocol": "TCP",
+                        "extended_service_name": "FTP",
+                        "service_name": "FTP",
+                        "port": 21
+                    },
+                    {
+                        "transport_protocol": "TCP",
+                        "extended_service_name": "HTTP",
+                        "service_name": "HTTP",
+                        "port": 80
+                    }
+                ]
+            },
+            {
+                "ip": "2a05:300:0:0:0:0:2:10",
+                "whois": {
+                    "organization": {
+                        "address": "483 Green Lanes\\nN13 4BS\\nLondon\\nUNITED KINGDOM",
+                        "name": "Binary Racks Limited"
+                    },
+                    "network": {
+                        "name": "Binary Racks Limited"
+                    }
+                },
+                "location": {
+                    "province": "England",
+                    "city": "London",
+                    "coordinates": {
+                        "latitude": 51.50853,
+                        "longitude": -0.12574
+                    }
+                },
+                "services": [
+                    {
+                        "transport_protocol": "TCP",
+                        "extended_service_name": "SSH",
+                        "service_name": "SSH",
+                        "port": 22
+                    },
+                    {
+                        "transport_protocol": "TCP",
+                        "service_name": "HTTP",
+                        "extended_service_name": "HTTP",
+                        "port": 80
+                    },
+                    {
+                        "tls": {
+                            "presented_chain": [
+                                {
+                                    "subject_dn": "C=US, O=Let's Encrypt, CN=R10",
+                                    "issuer_dn": "C=US, O=Internet Security Research Group, CN=ISRG Root X1"
+                                }
+                            ],
+                            "cipher_selected": "TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256",
+                            "version_selected": "TLSv1_2"
+                        },
+                        "transport_protocol": "TCP",
+                        "service_name": "HTTP",
+                        "extended_service_name": "HTTPS",
+                        "port": 443
+                    }
+                ]
+            },
+            {
+                "ip": "2a03:4000:58:faf:7830:4bff:fe47:b207",
+                "whois": {
+                    "organization": {
+                        "address": "Daimlerstrasse 25\\n76185\\nKarlsruhe\\nGERMANY",
+                        "name": "netcup GmbH"
+                    },
+                    "network": {
+                        "name": "netcup GmbH"
+                    }
+                },
+                "location": {
+                    "province": "Bavaria",
+                    "city": "N\u00fcrnberg",
+                    "coordinates": {
+                        "latitude": 49.4453,
+                        "longitude": 11.0222
+                    }
+                },
+                "services": [
+                    {
+                        "transport_protocol": "TCP",
+                        "extended_service_name": "SSH",
+                        "service_name": "SSH",
+                        "port": 22
+                    },
+                    {
+                        "transport_protocol": "TCP",
+                        "extended_service_name": "HTTP",
+                        "service_name": "HTTP",
+                        "port": 80
+                    },
+                    {
+                        "tls": {
+                            "presented_chain": [
+                                {
+                                    "subject_dn": "C=US, O=Let's Encrypt, CN=R11",
+                                    "issuer_dn": "C=US, O=Internet Security Research Group, CN=ISRG Root X1"
+                                }
+                            ],
+                            "cipher_selected": "TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256",
+                            "version_selected": "TLSv1_2"
+                        },
+                        "transport_protocol": "TCP",
+                        "extended_service_name": "HTTPS",
+                        "service_name": "HTTP",
+                        "port": 443
+                    }
+                ]
+            },
+            {
+                "ip": "2600:4040:5039:fc00:0:0:0:1d79",
+                "whois": {
+                    "organization": {
+                        "name": "Verizon Business"
+                    },
+                    "network": {
+                        "name": "Verizon Business"
+                    }
+                },
+                "location": {
+                    "province": "Massachusetts",
+                    "city": "Grafton",
+                    "coordinates": {
+                        "latitude": 42.20704,
+                        "longitude": -71.68562
+                    }
+                },
+                "services": [
+                    {
+                        "tls": {
+                            "cipher_selected": "TLS_AES_128_GCM_SHA256",
+                            "version_selected": "TLSv1_3"
+                        },
+                        "transport_protocol": "TCP",
+                        "extended_service_name": "HTTPS",
+                        "service_name": "HTTP",
+                        "port": 443
+                    }
+                ]
+            }
+        ],
+        "links": {
+            "next": "",
+            "prev": ""
+        }
+    }
+}

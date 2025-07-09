@@ -1,0 +1,374 @@
+{
+    "code": 200,
+    "status": "OK",
+    "result": {
+        "query": "(labels: ipv6) and labels = camera",
+        "total": 8,
+        "duration": 58,
+        "hits": [
+            {
+                "ip": "2400:4052:67a2:db00:a00:23ff:fecf:87aa",
+                "whois": {
+                    "network": {
+                        "name": "NTT COMMUNICATIONS CORPORATION"
+                    }
+                },
+                "location": {
+                    "province": "Nagano",
+                    "city": "Karuizawa",
+                    "coordinates": {
+                        "latitude": 36.35,
+                        "longitude": 138.63333
+                    }
+                },
+                "services": [
+                    {
+                        "transport_protocol": "TCP",
+                        "extended_service_name": "HTTP",
+                        "service_name": "HTTP",
+                        "port": 80
+                    }
+                ]
+            },
+            {
+                "ip": "2620:46:8000:56:0:0:0:23",
+                "whois": {
+                    "organization": {
+                        "name": "Gustavus Adolphus College"
+                    },
+                    "network": {
+                        "name": "Gustavus Adolphus College"
+                    }
+                },
+                "location": {
+                    "province": "Minnesota",
+                    "city": "Saint Peter",
+                    "coordinates": {
+                        "latitude": 44.32358,
+                        "longitude": -93.95801
+                    }
+                },
+                "services": [
+                    {
+                        "transport_protocol": "TCP",
+                        "extended_service_name": "HTTP",
+                        "service_name": "HTTP",
+                        "port": 80
+                    },
+                    {
+                        "tls": {
+                            "cipher_selected": "TLS_CHACHA20_POLY1305_SHA256",
+                            "version_selected": "TLSv1_3"
+                        },
+                        "transport_protocol": "TCP",
+                        "extended_service_name": "HTTPS",
+                        "service_name": "HTTP",
+                        "port": 443
+                    }
+                ]
+            },
+            {
+                "ip": "2a00:12d0:ae35:1001:203:c5ff:fe0f:34a3",
+                "whois": {
+                    "organization": {
+                        "address": "Gerhard-Fr\u00f6hler-Stra\u00dfe 12\\n24106\\nKiel\\nGERMANY",
+                        "name": "TNG Stadtnetz GmbH"
+                    },
+                    "network": {
+                        "name": "TNG Stadtnetz GmbH"
+                    }
+                },
+                "location": {
+                    "province": "Schleswig-Holstein",
+                    "city": "Kiel",
+                    "coordinates": {
+                        "latitude": 54.32133,
+                        "longitude": 10.13489
+                    }
+                },
+                "services": [
+                    {
+                        "transport_protocol": "TCP",
+                        "extended_service_name": "HTTP",
+                        "service_name": "HTTP",
+                        "port": 80
+                    },
+                    {
+                        "tls": {
+                            "presented_chain": [
+                                {
+                                    "subject_dn": "C=DE, ST=Rheinland-Pfalz, O=MOBOTIX AG, OU=MX-PKI, CN=MX-ProduktionSubCA-1",
+                                    "issuer_dn": "C=DE, ST=Rheinland-Pfalz, O=MOBOTIX AG, OU=MX-PKI, CN=MX-ProduktionCA"
+                                },
+                                {
+                                    "subject_dn": "C=DE, ST=Rheinland-Pfalz, O=MOBOTIX AG, OU=MX-PKI, CN=MX-ProduktionCA",
+                                    "issuer_dn": "C=DE, ST=Reihnland-Pfalz, O=MOBOTIX AG, OU=MX-PKI, CN=MX-SubRootCA-1"
+                                },
+                                {
+                                    "subject_dn": "C=DE, ST=Reihnland-Pfalz, O=MOBOTIX AG, OU=MX-PKI, CN=MX-SubRootCA-1",
+                                    "issuer_dn": "C=DE, ST=Reihnland-Pfalz, L=Langmeil, O=MOBOTIX AG, OU=MX-PKI, CN=MX-RootCA"
+                                },
+                                {
+                                    "subject_dn": "C=DE, ST=Reihnland-Pfalz, L=Langmeil, O=MOBOTIX AG, OU=MX-PKI, CN=MX-RootCA",
+                                    "issuer_dn": "C=DE, ST=Reihnland-Pfalz, L=Langmeil, O=MOBOTIX AG, OU=MX-PKI, CN=MX-RootCA"
+                                }
+                            ],
+                            "cipher_selected": "TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384",
+                            "version_selected": "TLSv1_2"
+                        },
+                        "transport_protocol": "TCP",
+                        "extended_service_name": "HTTPS",
+                        "service_name": "HTTP",
+                        "port": 443
+                    }
+                ]
+            },
+            {
+                "ip": "2a07:6b44:248:14:0:0:0:245",
+                "location": {
+                    "province": "Bern",
+                    "city": "Bern",
+                    "coordinates": {
+                        "latitude": 46.94809,
+                        "longitude": 7.44744
+                    }
+                },
+                "whois": {
+                    "organization": {
+                        "address": "BFH, IT-Services, Dammweg 3\\n3013\\nBern\\nSWITZERLAND",
+                        "name": "Berner Fachhochschule"
+                    },
+                    "network": {
+                        "name": "Berner Fachhochschule"
+                    }
+                },
+                "services": [
+                    {
+                        "transport_protocol": "TCP",
+                        "service_name": "HTTP",
+                        "extended_service_name": "HTTP",
+                        "port": 80
+                    },
+                    {
+                        "transport_protocol": "TCP",
+                        "tls": {
+                            "presented_chain": [
+                                {
+                                    "subject_dn": "C=US, O=Let's Encrypt, CN=R11",
+                                    "issuer_dn": "C=US, O=Internet Security Research Group, CN=ISRG Root X1"
+                                }
+                            ],
+                            "cipher_selected": "TLS_AES_256_GCM_SHA384",
+                            "version_selected": "TLSv1_3"
+                        },
+                        "extended_service_name": "HTTPS",
+                        "service_name": "HTTP",
+                        "port": 443
+                    }
+                ]
+            },
+            {
+                "ip": "2a01:4f8:c013:a1a:0:0:0:1",
+                "whois": {
+                    "organization": {
+                        "address": "Industriestrasse 25\\nD-91710\\nGunzenhausen\\nGERMANY",
+                        "name": "Hetzner Online GmbH"
+                    },
+                    "network": {
+                        "name": "Hetzner Online GmbH"
+                    }
+                },
+                "location": {
+                    "province": "Saxony",
+                    "city": "Falkenstein",
+                    "coordinates": {
+                        "latitude": 50.47788,
+                        "longitude": 12.37129
+                    }
+                },
+                "services": [
+                    {
+                        "transport_protocol": "TCP",
+                        "extended_service_name": "HTTP",
+                        "service_name": "HTTP",
+                        "port": 80
+                    },
+                    {
+                        "tls": {
+                            "presented_chain": [
+                                {
+                                    "subject_dn": "C=US, O=Let's Encrypt, CN=R10",
+                                    "issuer_dn": "C=US, O=Internet Security Research Group, CN=ISRG Root X1"
+                                }
+                            ],
+                            "cipher_selected": "TLS_AES_256_GCM_SHA384",
+                            "version_selected": "TLSv1_3"
+                        },
+                        "transport_protocol": "TCP",
+                        "extended_service_name": "HTTPS",
+                        "service_name": "HTTP",
+                        "port": 443
+                    }
+                ]
+            },
+            {
+                "ip": "2a01:e0a:2da:8260:211:32ff:feca:cd79",
+                "whois": {
+                    "organization": {
+                        "address": "16 rue de la Ville l'Eveque\\n75008\\nParis\\nFRANCE",
+                        "name": "Free SAS"
+                    },
+                    "network": {
+                        "name": "Free SAS"
+                    }
+                },
+                "location": {
+                    "province": "\u00cele-de-France",
+                    "coordinates": {
+                        "latitude": 48.85341,
+                        "longitude": 2.3488
+                    },
+                    "city": "Paris"
+                },
+                "services": [
+                    {
+                        "transport_protocol": "TCP",
+                        "extended_service_name": "SSH",
+                        "service_name": "SSH",
+                        "port": 22
+                    },
+                    {
+                        "transport_protocol": "TCP",
+                        "extended_service_name": "HTTP",
+                        "service_name": "HTTP",
+                        "port": 80
+                    },
+                    {
+                        "tls": {
+                            "cipher_selected": "TLS_AES_256_GCM_SHA384",
+                            "version_selected": "TLSv1_3"
+                        },
+                        "transport_protocol": "TCP",
+                        "extended_service_name": "HTTPS",
+                        "service_name": "HTTP",
+                        "port": 443
+                    },
+                    {
+                        "transport_protocol": "TCP",
+                        "extended_service_name": "HTTP",
+                        "service_name": "HTTP",
+                        "port": 5000
+                    },
+                    {
+                        "tls": {
+                            "cipher_selected": "TLS_AES_256_GCM_SHA384",
+                            "version_selected": "TLSv1_3"
+                        },
+                        "transport_protocol": "TCP",
+                        "service_name": "HTTP",
+                        "extended_service_name": "HTTPS",
+                        "port": 5001
+                    }
+                ]
+            },
+            {
+                "ip": "2a01:4f8:c013:ce20:0:0:0:1",
+                "location": {
+                    "province": "Saxony",
+                    "city": "Falkenstein",
+                    "coordinates": {
+                        "latitude": 50.47788,
+                        "longitude": 12.37129
+                    }
+                },
+                "whois": {
+                    "organization": {
+                        "address": "Industriestrasse 25\\nD-91710\\nGunzenhausen\\nGERMANY",
+                        "name": "Hetzner Online GmbH"
+                    },
+                    "network": {
+                        "name": "Hetzner Online GmbH"
+                    }
+                },
+                "services": [
+                    {
+                        "transport_protocol": "TCP",
+                        "extended_service_name": "HTTP",
+                        "service_name": "HTTP",
+                        "port": 80
+                    },
+                    {
+                        "tls": {
+                            "presented_chain": [
+                                {
+                                    "subject_dn": "C=US, O=Let's Encrypt, CN=E5",
+                                    "issuer_dn": "C=US, O=Internet Security Research Group, CN=ISRG Root X1"
+                                }
+                            ],
+                            "cipher_selected": "TLS_AES_128_GCM_SHA256",
+                            "version_selected": "TLSv1_3"
+                        },
+                        "transport_protocol": "TCP",
+                        "extended_service_name": "HTTPS",
+                        "service_name": "HTTP",
+                        "port": 443
+                    }
+                ]
+            },
+            {
+                "ip": "2a02:238:f030:102:0:0:0:1079",
+                "whois": {
+                    "organization": {
+                        "address": "Nonnenmuehlgasse 1\\n04107\\nLeipzig\\nGERMANY",
+                        "name": "HL komm Telekommunikations GmbH"
+                    },
+                    "network": {
+                        "name": "flying circus operations GmbH"
+                    }
+                },
+                "location": {
+                    "province": "Saxony",
+                    "city": "Leipzig",
+                    "coordinates": {
+                        "latitude": 51.33962,
+                        "longitude": 12.37129
+                    }
+                },
+                "services": [
+                    {
+                        "transport_protocol": "TCP",
+                        "service_name": "SSH",
+                        "extended_service_name": "SSH",
+                        "port": 22
+                    },
+                    {
+                        "transport_protocol": "TCP",
+                        "service_name": "HTTP",
+                        "extended_service_name": "HTTP",
+                        "port": 80
+                    },
+                    {
+                        "tls": {
+                            "presented_chain": [
+                                {
+                                    "subject_dn": "C=US, O=Let's Encrypt, CN=E5",
+                                    "issuer_dn": "C=US, O=Internet Security Research Group, CN=ISRG Root X1"
+                                }
+                            ],
+                            "cipher_selected": "TLS_CHACHA20_POLY1305_SHA256",
+                            "version_selected": "TLSv1_3"
+                        },
+                        "transport_protocol": "TCP",
+                        "extended_service_name": "HTTPS",
+                        "service_name": "HTTP",
+                        "port": 443
+                    }
+                ]
+            }
+        ],
+        "links": {
+            "next": "",
+            "prev": ""
+        }
+    }
+}
