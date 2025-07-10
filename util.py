@@ -1,10 +1,41 @@
 import os
 import sys
 import ast
+import logging
 
 sys.path.append(os.path.dirname(os.getcwd()))
 
 from subprocess import check_output, STDOUT
+
+
+def change_log_file(new_log_path):
+    """
+    动态地更改日志记录的文件路径。
+
+    Args:
+        new_log_path (str): 新的日志文件完整路径。
+    """
+    logger = logging.getLogger()
+
+    old_handler = None
+    for handler in logger.handlers:
+        if isinstance(handler, logging.FileHandler):
+            old_handler = handler
+            logger.removeHandler(handler)
+            handler.close()
+            break
+
+    if old_handler is None:
+        print("Warnings: No active FileHandler found!")
+
+    new_handler = logging.FileHandler(new_log_path, mode='a', encoding='utf-8')
+
+    log_format = logging.Formatter('%(asctime)s [%(levelname)s] %(message)s')
+    new_handler.setFormatter(log_format)
+
+    logger.addHandler(new_handler)
+
+    print(f"Log file has changed to: {new_log_path}")
 
 
 def hex_to_bit_list(hex_value):
@@ -35,11 +66,30 @@ def execute(command):
 
 
 def list_files_in_folder(directory: str):
+    """
+    列出目录下所有的文件路径
+    :param directory:
+    :return:
+    """
     all_file_path = []
     for root, dirs, files in os.walk(directory):
         for file in files:
             all_file_path.append(os.path.join(root, file))
     return all_file_path
+
+
+def get_subdirectories_os(parent_dir):
+    if not os.path.isdir(parent_dir):
+        print(f"错误: '{parent_dir}' 不是一个有效的目录或不存在。")
+        return []
+
+    subdirectories = []
+    for name in os.listdir(parent_dir):
+        full_path = os.path.join(parent_dir, name)
+        if os.path.isdir(full_path):
+            subdirectories.append(name)
+
+    return subdirectories
 
 
 def get_filename_without_extension(file_path):

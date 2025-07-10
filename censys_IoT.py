@@ -14,7 +14,7 @@ logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s [%(levelname)s] %(message)s',
     filemode='a',
-    filename=os.path.join(os.getcwd(), "dataset/Censys/IoT/data.log")
+    filename=os.path.join(os.getcwd(), "dataset/Censys/dataset/data.log")
 )
 
 
@@ -132,7 +132,7 @@ class CensysData:
                 page_index += 1
                 first_query_success = True
 
-                with open(os.path.join(self.save_path, f"IoT/{base_dir}/{device_label}/page{page_index}.json"), "w") as f:
+                with open(os.path.join(self.save_path, f"dataset/{base_dir}/{device_label}/page{page_index}.json"), "w") as f:
                     json.dump(data, f, indent=4)
 
                 print(f"Page {page_index} data has been fetched!")
@@ -165,7 +165,7 @@ class CensysData:
 
                 page_index += 1
 
-                with open(os.path.join(self.save_path, f"IoT/{base_dir}/{device_label}/page{page_index}.json"), "w") as f:
+                with open(os.path.join(self.save_path, f"dataset/{base_dir}/{device_label}/page{page_index}.json"), "w") as f:
                     json.dump(data, f, indent=4)
 
                 print(f"Page {page_index} data has been fetched!")
@@ -196,8 +196,8 @@ if __name__ == "__main__":
                          "iot"]
 
     for device_label in device_label_list:
-        base_path_v4 = os.path.join(cs.save_path, f"IoT/v4/{device_label}")
-        base_path_v6 = os.path.join(cs.save_path, f"IoT/v6/{device_label}")
+        base_path_v4 = os.path.join(cs.save_path, f"dataset/v4/{device_label}")
+        base_path_v6 = os.path.join(cs.save_path, f"dataset/v6/{device_label}")
         if os.path.exists(base_path_v4) or os.path.exists(base_path_v6):
             continue
         else:
