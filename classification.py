@@ -410,6 +410,6 @@ class LLMClassifier:
 
 
 if __name__ == "__main__":
-    ds_key = "sk-7b3b9d4fbaac4deb8fa84b3fdd03c113"
+    ds_key = ""
     lm = LLMClassifier(ds_key, "deepseek")
     lm.iot_classification("http")
