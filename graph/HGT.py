@@ -7,12 +7,13 @@ HGT.py - 使用 Heterogeneous Graph Transformer (HGT) 在Device-Feature二部图
          最终向量表示的维度为1024维
 
 Data is loaded from entity_graph/node.csv and entity_graph/relation.csv.
-Results are saved to platform_data/csv/local/1/hgt_embeddings/
+Results are saved to platform_data/csv/rag/community/embedding_HGT/
+Each device type gets its own file: ipraw_{dev}_embedding_overall_raw.csv
 
 Usage:
-    python graph/HGT.py
-    python graph/HGT.py --gpu 0
-    python graph/HGT.py --gpu -1  # CPU only
+    python graph/HGT.py                  # dual-GPU parallel (GPU 0 + GPU 1)
+    python graph/HGT.py --gpu 0          # single GPU
+    python graph/HGT.py --gpu -1         # CPU only
     python graph/HGT.py --epochs 200
 """
 
@@ -21,6 +22,7 @@ import sys
 import gc
 import logging
 import argparse
+import multiprocessing as mp
 
 import pandas as pd
 import torch
@@ -35,12 +37,22 @@ warnings.filterwarnings("ignore")
 
 # ─── 路径配置 / Path config ───────────────────────────────────────────
 BASE_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-LOCAL_PATH = os.path.join(BASE_PATH, "platform_data", "csv", "local", "1")
+LOCAL_PATH = os.path.join(BASE_PATH, "platform_data", "csv", "rag")
 ENTITY_GRAPH_PATH = os.path.join(BASE_PATH, "entity_graph")
 EMBEDDING_MODEL_PATH = os.path.join(BASE_PATH, "qwen3_embedding_06b")
+HGT_SAVE_PATH = os.path.join(LOCAL_PATH, "community", "embedding_HGT")
+RAG_DEVICES_FILE = os.path.join(BASE_PATH, "rag_devices.json")
 
 # 11个视角名称（与embedding_local CSV列前缀一致，排除hpart/http）
 PERSPECTIVE_NAMES = ['as', 'whois', 'os', 'sw', 'hw', 'sd', 'body', 'htags', 'hfavicons', 'certificate', 'dns']
+
+
+def load_rag_device_types():
+    """Load the allowed device types from rag_devices.json (IoT list)."""
+    import json
+    with open(RAG_DEVICES_FILE, 'r') as f:
+        data = json.load(f)
+    return set(data.get('IoT', []))
 
 # ─── 日志 / Logging ──────────────────────────────────────────────────
 logging.basicConfig(
@@ -163,72 +175,74 @@ def load_device_embeddings(device_nodes: pd.DataFrame) -> torch.Tensor:
     return torch.tensor(features, dtype=torch.float)
 
 
-def run_hgt(gpu: int = 1, num_epochs: int = 100):
+def run_hgt_on_subset(gpu: int, device_types: list, num_epochs: int, node_df: pd.DataFrame, relation_df: pd.DataFrame):
     """
-    使用Heterogeneous Graph Transformer (HGT)在Device-Feature二部图上
-    学习每个设备IP的最终向量表示（综合视角嵌入），最终向量维度为1024维。
+    在指定GPU上对一组设备类型运行HGT训练和embedding生成。
+    每个设备类型独立保存为 ipraw_{dev}_embedding_overall_raw.csv。
     """
+    tag = f"[HGT-GPU{gpu}]"
+    device_str = f'cuda:{gpu}' if gpu >= 0 and torch.cuda.is_available() else 'cpu'
+    torch_device = torch.device(device_str)
+    logging.info(f"{tag} Processing device types: {device_types} on {device_str}")
 
-    print("[HGT] Starting HGT device embedding generation...")
-    logging.info("[HGT] Starting HGT device embedding generation...")
+    # ── 过滤出当前子集的Device节点 ──
+    subset_device_nodes = node_df[
+        (node_df['_labels'] == ':Device') &
+        (node_df['device_type'].isin(device_types))
+    ].copy().reset_index(drop=True)
 
-    # Step 1: 加载节点和关系数据
-    print("[HGT] Loading graph data...")
-    logging.info("[HGT] Loading graph data...")
+    # ── 向量化过滤关系：只保留_start在当前Device子集中的边 ──
+    subset_device_ids = set(int(x) for x in subset_device_nodes['_id'].values)
+    logging.info(f"{tag} Filtering relations for {len(subset_device_ids)} devices...")
+    rel_filtered = relation_df[
+        relation_df['_start'].isin(subset_device_ids) &
+        relation_df['_type'].fillna('').str.startswith('Has_')
+    ].copy()
 
-    node_df = pd.read_csv(os.path.join(ENTITY_GRAPH_PATH, "node.csv"))
-    relation_df = pd.read_csv(os.path.join(ENTITY_GRAPH_PATH, "relation.csv"))
+    # ── 收集这些Device连接的Feature节点 ──
+    subset_feature_ids = set(rel_filtered['_end'].dropna().astype(int).unique().tolist())
 
-    # Step 2: 分离Device和Feature节点
-    device_nodes = node_df[node_df['_labels'] == ':Device'].copy().reset_index(drop=True)
-    feature_nodes = node_df[node_df['_labels'] == ':Feature'].copy().reset_index(drop=True)
+    subset_feature_nodes = node_df[
+        (node_df['_labels'] == ':Feature') &
+        (node_df['_id'].isin(subset_feature_ids))
+    ].copy().reset_index(drop=True)
 
-    print(f"[HGT] Device nodes: {len(device_nodes)}, Feature nodes: {len(feature_nodes)}")
-    logging.info(f"[HGT] Device nodes: {len(device_nodes)}, Feature nodes: {len(feature_nodes)}")
+    logging.info(f"{tag} Device nodes: {len(subset_device_nodes)}, Feature nodes: {len(subset_feature_nodes)}, Relations: {len(rel_filtered)}")
 
-    # Step 3: 创建节点ID映射
-    device_id_map = {int(row['_id']): idx for idx, row in device_nodes.iterrows()}
-    feature_id_map = {int(row['_id']): idx for idx, row in feature_nodes.iterrows()}
+    # ── 创建节点ID映射 ──
+    device_id_map = {int(row['_id']): idx for idx, row in subset_device_nodes.iterrows()}
+    feature_id_map = {int(row['_id']): idx for idx, row in subset_feature_nodes.iterrows()}
 
-    # Step 4: 构建边索引（支持多种Has_*边类型）
-    print("[HGT] Building edge indices...")
-    edge_dict = {}  # rel_type -> list of [device_idx, feature_idx]
+    # ── 向量化构建边索引 ──
+    rel_filtered['_start_idx'] = rel_filtered['_start'].map(device_id_map)
+    rel_filtered['_end_idx'] = rel_filtered['_end'].map(feature_id_map)
+    rel_filtered = rel_filtered.dropna(subset=['_start_idx', '_end_idx'])
+    rel_filtered['_start_idx'] = rel_filtered['_start_idx'].astype(int)
+    rel_filtered['_end_idx'] = rel_filtered['_end_idx'].astype(int)
 
-    for _, row in relation_df.iterrows():
-        if pd.isna(row['_start']) or pd.isna(row['_end']) or pd.isna(row['_type']):
-            continue
-        rel_type = str(row['_type'])
-        if not rel_type.startswith('Has_'):
-            continue
-        start_id = int(row['_start'])
-        end_id = int(row['_end'])
-        if start_id in device_id_map and end_id in feature_id_map:
-            if rel_type not in edge_dict:
-                edge_dict[rel_type] = []
-            edge_dict[rel_type].append([device_id_map[start_id], feature_id_map[end_id]])
+    edge_dict = {}
+    for rel_type, group in rel_filtered.groupby('_type'):
+        edge_dict[str(rel_type)] = group[['_start_idx', '_end_idx']].values.tolist()
 
-    print(f"[HGT] Edge types found: {list(edge_dict.keys())}")
-    logging.info(f"[HGT] Edge types found: {list(edge_dict.keys())}")
+    logging.info(f"{tag} Edge types: {len(edge_dict)}")
 
-    # Step 5: 计算Feature节点的degree（连接的Device数量），用于惩罚因子1/log(degree)
-    feature_degree = torch.zeros(len(feature_nodes), dtype=torch.float)
+    # ── 计算Feature节点的degree ──
+    feature_degree = torch.zeros(len(subset_feature_nodes), dtype=torch.float)
     for edges in edge_dict.values():
         for _, feature_idx in edges:
             feature_degree[feature_idx] += 1
 
-    # Step 6: 构建Device节点初始嵌入（从预计算的11个视角嵌入取均值，1024维）
-    print("[HGT] Building device node features from perspective embeddings...")
-    logging.info("[HGT] Building device node features from perspective embeddings...")
-    device_features = load_device_embeddings(device_nodes)
-    print(f"[HGT] Device feature shape: {device_features.shape}")
+    # ── 构建Device节点初始嵌入 ──
+    logging.info(f"{tag} Building device node features...")
+    device_features = load_device_embeddings(subset_device_nodes)
+    logging.info(f"{tag} Device feature shape: {device_features.shape}")
 
-    # Step 7: 构建Feature节点初始嵌入（"feature_name: value" → Qwen3嵌入 + degree惩罚）
-    print("[HGT] Building feature node features...")
-    logging.info("[HGT] Building feature node features...")
+    # ── 构建Feature节点初始嵌入 ──
+    logging.info(f"{tag} Building feature node features...")
     embedding_model = build_embedding_model(gpu)
 
     feature_features_list = []
-    for _, row in feature_nodes.iterrows():
+    for _, row in subset_feature_nodes.iterrows():
         feat_name = str(row['feature_name']) if pd.notna(row.get('feature_name')) else ""
         feat_val = str(row['value']) if pd.notna(row.get('value')) else ""
         feat_str = f"{feat_name}: {feat_val}"
@@ -237,17 +251,22 @@ def run_hgt(gpu: int = 1, num_epochs: int = 100):
 
     feature_features = torch.tensor(feature_features_list, dtype=torch.float)
 
-    # 应用degree惩罚因子：1/log(degree)，degree<=1时惩罚因子取1.0
+    # degree惩罚因子
     penalty = torch.where(
         feature_degree > 1,
         1.0 / torch.log(feature_degree),
         torch.ones_like(feature_degree)
     )
     feature_features = feature_features * penalty.unsqueeze(1)
-    print(f"[HGT] Feature feature shape: {feature_features.shape}")
+    logging.info(f"{tag} Feature feature shape: {feature_features.shape}")
 
-    # Step 8: 创建异构图数据
-    print("[HGT] Creating heterogeneous graph...")
+    # 释放embedding模型显存
+    del embedding_model
+    gc.collect()
+    if gpu >= 0:
+        torch.cuda.empty_cache()
+
+    # ── 创建异构图数据 ──
     data = HeteroData()
     data['device'].x = device_features
     data['feature'].x = feature_features
@@ -255,17 +274,11 @@ def run_hgt(gpu: int = 1, num_epochs: int = 100):
     for rel_type, edges in edge_dict.items():
         edge_tensor = torch.tensor(edges, dtype=torch.long).t().contiguous()
         data['device', rel_type, 'feature'].edge_index = edge_tensor
-        # 添加反向边（Feature→Device），支持第一层Feature聚合Device信息
         data['feature', f'rev_{rel_type}', 'device'].edge_index = edge_tensor.flip([0])
 
-    print(f"[HGT] Total edge types (incl. reverse): {len(data.edge_index_dict)}")
+    logging.info(f"{tag} Total edge types (incl. reverse): {len(data.edge_index_dict)}")
 
-    # Step 9: 初始化模型并移到GPU
-    print("[HGT] Initializing HGT model...")
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    print(f"[HGT] Using device: {device}")
-    logging.info(f"[HGT] Using device: {device}")
-
+    # ── 初始化模型 ──
     model = HGTModel(
         in_channels=1024,
         hidden_channels=512,
@@ -273,11 +286,11 @@ def run_hgt(gpu: int = 1, num_epochs: int = 100):
         num_heads=8,
         num_layers=2,
         metadata=data.metadata(),
-    ).to(device)
-    data = data.to(device)
+    ).to(torch_device)
+    data = data.to(torch_device)
 
-    # Step 10: 训练模型（自监督学习）
-    print("[HGT] Training HGT model...")
+    # ── 训练 ──
+    logging.info(f"{tag} Training HGT model for {num_epochs} epochs...")
     optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
     model.train()
 
@@ -285,7 +298,6 @@ def run_hgt(gpu: int = 1, num_epochs: int = 100):
         optimizer.zero_grad()
         device_emb = model(data.x_dict, data.edge_index_dict)
 
-        # 对比学习损失：从所有边类型中采样正样本对（Device-Feature对应相似）
         all_edge_tensors = [
             data['device', rel_type, 'feature'].edge_index
             for rel_type in edge_dict
@@ -313,41 +325,118 @@ def run_hgt(gpu: int = 1, num_epochs: int = 100):
         optimizer.step()
 
         if (epoch + 1) % 10 == 0:
-            print(f"[HGT] Epoch {epoch+1}/{num_epochs}, Loss: {loss.item():.4f}")
-            logging.info(f"[HGT] Epoch {epoch+1}/{num_epochs}, Loss: {loss.item():.4f}")
+            logging.info(f"{tag} Epoch {epoch+1}/{num_epochs}, Loss: {loss.item():.4f}")
 
-    # Step 11: 生成最终的device embeddings
-    print("[HGT] Generating final device embeddings...")
+    # ── 生成最终embedding ──
+    logging.info(f"{tag} Generating final device embeddings...")
     model.eval()
     with torch.no_grad():
         final_device_emb = model(data.x_dict, data.edge_index_dict)
         final_device_emb = final_device_emb.cpu().numpy()
 
-    # Step 12: 保存结果
-    print("[HGT] Saving device embeddings...")
-    hgt_save_path = os.path.join(LOCAL_PATH, "hgt_embeddings")
-    os.makedirs(hgt_save_path, exist_ok=True)
-
+    # ── 按设备类型分别保存 ──
+    os.makedirs(HGT_SAVE_PATH, exist_ok=True)
     embedding_cols = [f"hgt_emb_{i}" for i in range(1024)]
-    result_df = pd.DataFrame(final_device_emb, columns=embedding_cols)
-    result_df.insert(0, 'ip', device_nodes['ip'].values)
 
-    output_path = os.path.join(hgt_save_path, "device_hgt_embeddings.csv")
-    result_df.to_csv(output_path, index=False)
+    for dev_type in device_types:
+        mask = subset_device_nodes['device_type'] == dev_type
+        dev_indices = mask.values
+        dev_ips = subset_device_nodes.loc[mask, 'ip'].values
+        dev_embs = final_device_emb[dev_indices]
 
-    print(f"[HGT] Device embeddings saved to: {output_path}")
-    print(f"[HGT] Total devices: {len(result_df)}, Embedding dimension: 1024")
-    logging.info(f"[HGT] Device embeddings saved to: {output_path}")
-    logging.info(f"[HGT] Total devices: {len(result_df)}, Embedding dimension: 1024")
+        result_df = pd.DataFrame(dev_embs, columns=embedding_cols)
+        result_df.insert(0, 'ip', dev_ips)
 
-    return result_df
+        output_path = os.path.join(HGT_SAVE_PATH, f"ipraw_{dev_type}_embedding_overall_raw.csv")
+        result_df.to_csv(output_path, index=False)
+        logging.info(f"{tag} Saved {dev_type}: {len(result_df)} devices → {output_path}")
+
+    logging.info(f"{tag} Done. Processed {len(device_types)} device types.")
+
+
+def _worker_fn(gpu, device_types, num_epochs, node_csv, relation_csv):
+    """Worker process entry point for multiprocessing."""
+    node_df = pd.read_csv(node_csv)
+    relation_df = pd.read_csv(relation_csv)
+    run_hgt_on_subset(gpu, device_types, num_epochs, node_df, relation_df)
+
+
+def run_hgt(gpu: int = 1, num_epochs: int = 100):
+    """
+    使用Heterogeneous Graph Transformer (HGT)在Device-Feature二部图上
+    学习每个设备IP的最终向量表示（综合视角嵌入），最终向量维度为1024维。
+    当gpu=1且双GPU可用时，自动将设备类型分配到GPU 0和GPU 1并行训练。
+    """
+    logging.info("[HGT] Starting HGT device embedding generation...")
+
+    node_csv = os.path.join(ENTITY_GRAPH_PATH, "node.csv")
+    relation_csv = os.path.join(ENTITY_GRAPH_PATH, "relation.csv")
+
+    if not os.path.exists(node_csv) or not os.path.exists(relation_csv):
+        logging.error(f"[HGT] entity_graph files not found. Run build.py --export first.")
+        return
+
+    # ── 读取node.csv获取所有设备类型 ──
+    node_df = pd.read_csv(node_csv, usecols=['_id', '_labels', 'ip', 'device_type', 'feature_name', 'value'])
+    device_nodes = node_df[node_df['_labels'] == ':Device']
+    all_device_types = sorted(device_nodes['device_type'].unique().tolist())
+
+    # ── 只处理 rag_devices.json 中列出的设备类型 ──
+    rag_device_types = load_rag_device_types()
+    all_device_types = [d for d in all_device_types if d in rag_device_types]
+    device_nodes = device_nodes[device_nodes['device_type'].isin(all_device_types)]
+    logging.info(f"[HGT] Device types (filtered by rag_devices.json): {all_device_types}")
+
+    # ── 按设备数量均衡分配到两个GPU ──
+    dev_counts = device_nodes['device_type'].value_counts().to_dict()
+    # 按数量降序排列，交替分配到两个GPU（贪心均衡）
+    sorted_devs = sorted(all_device_types, key=lambda d: dev_counts.get(d, 0), reverse=True)
+    gpu0_devs, gpu1_devs = [], []
+    gpu0_count, gpu1_count = 0, 0
+    for dev in sorted_devs:
+        cnt = dev_counts.get(dev, 0)
+        if gpu0_count <= gpu1_count:
+            gpu0_devs.append(dev)
+            gpu0_count += cnt
+        else:
+            gpu1_devs.append(dev)
+            gpu1_count += cnt
+
+    logging.info(f"[HGT] GPU0 devices: {gpu0_devs} ({gpu0_count} devices)")
+    logging.info(f"[HGT] GPU1 devices: {gpu1_devs} ({gpu1_count} devices)")
+
+    # ── 单GPU模式 ──
+    if gpu != 1 or not torch.cuda.is_available() or torch.cuda.device_count() < 2:
+        actual_gpu = gpu if gpu >= 0 else 0
+        logging.info(f"[HGT] Single-GPU mode (gpu={gpu})")
+        relation_df = pd.read_csv(relation_csv)
+        run_hgt_on_subset(actual_gpu, all_device_types, num_epochs, node_df, relation_df)
+        return
+
+    # ── 双GPU并行模式 ──
+    logging.info("[HGT] Dual-GPU parallel mode")
+    p0 = mp.Process(target=_worker_fn, args=(0, gpu0_devs, num_epochs, node_csv, relation_csv))
+    p1 = mp.Process(target=_worker_fn, args=(1, gpu1_devs, num_epochs, node_csv, relation_csv))
+
+    p0.start()
+    p1.start()
+
+    p0.join()
+    p1.join()
+
+    if p0.exitcode != 0:
+        logging.error(f"[HGT] GPU0 worker exited with code {p0.exitcode}")
+    if p1.exitcode != 0:
+        logging.error(f"[HGT] GPU1 worker exited with code {p1.exitcode}")
+
+    logging.info("[HGT] Dual-GPU training complete.")
 
 
 def main():
     parser = argparse.ArgumentParser(description="HGT Device Embedding Generation")
     parser.add_argument(
         "--gpu", type=int, default=1, choices=[-1, 0, 1],
-        help="GPU device number to use (0 or 1), -1 for CPU only"
+        help="GPU device number: 0 or 1 for single-GPU, 1 for dual-GPU parallel (default: 1), -1 for CPU"
     )
     parser.add_argument(
         "--epochs", type=int, default=100,
