@@ -62,7 +62,13 @@ except ImportError:
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from util import load_perspective_info
+from util import (
+    load_perspective_info,
+    UNSEEN_INFO_COLS,
+    UNSEEN_SYSTEM,
+    build_fingerprint_info_text,
+    build_unseen_detection_prompt,
+)
 
 # ── Logging ──────────────────────────────────────────────────────────────────
 logging.basicConfig(
@@ -736,6 +742,26 @@ class UnseenDeviceDetector:
 
         return "\n".join(lines)
 
+    def _build_aligned_prompt(self, query_fp: Dict) -> str:
+        """
+        构建与 SFT 训练数据完全一致的 prompt (Method B 对齐).
+        Build the prompt used by the FINE-TUNED adapter — byte-identical to what
+        evaluation/unseen/llama3/prepare_data.py emits for SFT. Only the
+        per-perspective info columns (util.UNSEEN_INFO_COLS) are included.
+
+        This is the inference-time half of the train/inference alignment: the
+        adapter was trained on this exact prompt, so it must see it at inference.
+        """
+        fp_text = build_fingerprint_info_text(query_fp)
+        if not fp_text:
+            # No info columns in the query fingerprint (unexpected for CSV-derived
+            # fingerprints) — fall back to a clearly-marked empty fingerprint so the
+            # model still receives the aligned schema.
+            fp_text = "(no fingerprint info available)"
+        return build_unseen_detection_prompt(
+            fp_text, self.rag_devices, self.unseen_candidates
+        )
+
     def _build_detection_prompt(
         self,
         query_fp: Dict,
@@ -1002,14 +1028,21 @@ Output your step-by-step reasoning, then end with a JSON block:
         )
         logging.info(f"Unseen indicators: {json.dumps(indicators, default=str)}")
 
-        # 3. 构建 prompt (聚焦 key perspectives vs community cluster perspectives)
-        # 3. Build prompt (focus on key perspectives vs community cluster perspectives)
+        # 3. 构建 prompt
+        # 3. Build prompt
         query_fp = reasoning_result.get("query_fingerprint", {})
-        prompt = self._build_detection_prompt(
-            query_fp, key_perspectives, non_key_perspectives, indicators,
-            community_result=community_result,
-            web_search_results=web_search_results,
-        )
+        if self.adapter_path:
+            # Fine-tuned adapter: use the SAME prompt as SFT training (Method B
+            # train/inference alignment). Only info columns; ignores the rich
+            # community/key-perspective evidence that the base-model path uses.
+            prompt = self._build_aligned_prompt(query_fp)
+        else:
+            # Base-model zero-shot: rich perspective-comparison prompt.
+            prompt = self._build_detection_prompt(
+                query_fp, key_perspectives, non_key_perspectives, indicators,
+                community_result=community_result,
+                web_search_results=web_search_results,
+            )
 
         # 4. LLama 推理
         # 4. Run LLama inference
@@ -1218,10 +1251,8 @@ Output your step-by-step reasoning, then end with a JSON block:
         )
         query_fp = reasoning_result.get("query_fingerprint", {})
 
-        prompt = self._build_detection_prompt(
-            query_fp, key_perspectives, non_key_perspectives, indicators,
-            community_result=community_result,
-        )
+        # Method B: training prompt == fine-tuned-adapter inference prompt.
+        prompt = self._build_aligned_prompt(query_fp)
 
         # 「新类型」判定: 真实类型不在 rag_devices 中即为新设备类型
         # New-TYPE verdict: ground-truth type not in rag_devices → new device type
@@ -1257,10 +1288,7 @@ Output your step-by-step reasoning, then end with a JSON block:
         )
 
         return {
-            "instruction": (
-                "You are an expert IoT network device classifier specializing in "
-                "unseen device detection. Always respond with valid JSON as instructed."
-            ),
+            "instruction": UNSEEN_SYSTEM,
             "input": prompt,
             "output": f"```json\n{target_output}\n```",
             "metadata": {
