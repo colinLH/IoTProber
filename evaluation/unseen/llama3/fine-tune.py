@@ -10,7 +10,11 @@ NOT a vendor-only string.
   LLaMA-3.1-8B" configuration referenced by the design.
 - Microbatch 1 × gradient-accumulation 8 → effective batch size 8
 - Gradient checkpointing enabled
-- Right-truncation at 2048 tokens (prompt is long: perspective comparison)
+- Length is bounded at DATA-PREP time: prepare_data.py compresses every
+  over-2048-token fingerprint with a DeepSeek keyword summary, so each full chat
+  prompt already fits MAX_LEN (2048). fine-tune.py right-truncates the rare
+  residual overflow (keeping the answer fully supervised) — the old left-truncation
+  hack that discarded most of the device evidence is no longer needed.
 - Targeted loss masking: only the assistant JSON answer tokens are supervised.
 
 Input data: dataset/unseen_sft.jsonl produced by prepare_data.py, one JSON object
@@ -41,7 +45,7 @@ DATA_FILE = os.path.join(DATASET_DIR, "unseen_sft.jsonl")
 OUTPUT_DIR = os.path.join(SCRIPT_DIR, "results")
 LOG_DIR = os.path.join(SCRIPT_DIR, "logs")
 
-MAX_LEN = 2048
+MAX_LEN = 32768
 
 
 # ──────────────────────────── Data helpers ────────────────────────────
@@ -89,19 +93,18 @@ def format_and_tokenize(examples, tokenizer, max_length=MAX_LEN):
         answer_ids = tokenizer(answer, add_special_tokens=False)["input_ids"]
         answer_ids = answer_ids + [tokenizer.eos_token_id]
 
-        # Guarantee the ANSWER tokens are always supervised. The unseen-detection
-        # prompts are very long (the perspective comparison dump routinely exceeds
-        # 2k tokens, up to ~75k), so a plain RIGHT-truncation `(prompt+answer)[:N]`
-        # would slice the answer JSON away entirely → every label becomes -100 and
-        # the model receives ZERO supervision. Instead, when the prompt is too long,
-        # LEFT-truncate the prompt (keep its tail, which carries the task
-        # instructions and the JSON schema the model must reproduce) and append the
-        # FULL answer unchanged.
+        # prepare_data.py pre-compresses every fingerprint with a DeepSeek summary so
+        # the full chat prompt already fits MAX_LEN; this branch is a rare safety net.
+        # The ANSWER tokens are ALWAYS kept fully supervised. If an edge-case prompt
+        # still exceeds the budget, RIGHT-truncate the PROMPT (keep system + device-
+        # type lists + fingerprint evidence at the head; the model is fine-tuned on
+        # the task/JSON schema so dropping the prompt tail is harmless) — NOT the old
+        # left-truncation that discarded the device evidence.
         prompt_budget = max_length - len(answer_ids)
         if prompt_budget < 1:
             prompt_budget = max(1, max_length // 8)
         if len(prompt_ids) > prompt_budget:
-            prompt_ids = prompt_ids[-prompt_budget:]
+            prompt_ids = prompt_ids[:prompt_budget]
 
         input_ids = prompt_ids + answer_ids
         # Supervise only the answer tokens
