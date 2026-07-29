@@ -25,6 +25,7 @@ import argparse
 import multiprocessing as mp
 
 import pandas as pd
+import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -124,10 +125,12 @@ def build_embedding_model(gpu: int):
     return model
 
 
-def load_device_embeddings(device_nodes: pd.DataFrame) -> torch.Tensor:
+def load_device_embeddings(device_nodes: pd.DataFrame, high_mem: bool = False) -> torch.Tensor:
     """
     从预计算的embedding_local CSV文件中加载各Device节点的11个视角嵌入，
     取均值得到1024维初始嵌入向量。
+    low-mem模式使用chunked读取控制内存（cgroup限制32GB，CAMERA文件25GB）。
+    high-mem模式一次性读取全量CSV（适用于H100等大内存环境）。
     """
     embedding_local_path = os.path.join(LOCAL_PATH, "embedding_local")
     ip_to_emb = {}
@@ -141,27 +144,61 @@ def load_device_embeddings(device_nodes: pd.DataFrame) -> torch.Tensor:
                     ip_to_emb[str(ip)] = [0.0] * 1024
                 continue
 
-            logging.info(f"[HGT] Loading embedding CSV for {dev_type}...")
-            emb_df = pd.read_csv(csv_path)
-            emb_df['ip'] = emb_df['ip'].astype(str)
+            mode_str = "full-load" if high_mem else "chunked"
+            logging.info(f"[HGT] Loading embedding CSV for {dev_type} ({mode_str})...")
 
-            # 按视角名称确定对应的列组（每视角1024列）
-            perspective_col_groups = []
-            for p in PERSPECTIVE_NAMES:
-                cols = [c for c in [f"{p}{i+1}" for i in range(1024)] if c in emb_df.columns]
-                perspective_col_groups.append(cols)
+            # 先读header确定可用列
+            header_df = pd.read_csv(csv_path, nrows=0)
+            all_cols = set(header_df.columns)
+            del header_df
 
             target_ips = {str(ip) for ip in group['ip'].values}
-            matched = emb_df[emb_df['ip'].isin(target_ips)]
 
-            for _, row in matched.iterrows():
-                ip_str = row['ip']
-                persp_embs = []
-                for cols in perspective_col_groups:
-                    if cols:
-                        persp_embs.append(row[cols].values.astype(float))
-                avg = sum(persp_embs) / len(persp_embs) if persp_embs else [0.0] * 1024
-                ip_to_emb[ip_str] = avg.tolist() if hasattr(avg, 'tolist') else list(avg)
+            # 收集所有视角列
+            perspective_col_groups = []
+            needed_cols = ['ip']
+            for p in PERSPECTIVE_NAMES:
+                cols = [f"{p}{i+1}" for i in range(1024) if f"{p}{i+1}" in all_cols]
+                if cols:
+                    perspective_col_groups.append(cols)
+                    needed_cols.extend(cols)
+
+            dtype_map = {c: np.float32 for c in needed_cols if c != 'ip'}
+
+            def _process_matched(matched):
+                for _, row in matched.iterrows():
+                    ip_str = row['ip']
+                    persp_embs = []
+                    for cols in perspective_col_groups:
+                        persp_embs.append(row[cols].values.astype(np.float32))
+                    avg = sum(persp_embs) / len(persp_embs) if persp_embs else np.zeros(1024, dtype=np.float32)
+                    ip_to_emb[ip_str] = avg.tolist()
+
+            total_matched = 0
+
+            if high_mem:
+                # 一次性全量读取
+                emb_df = pd.read_csv(csv_path, usecols=needed_cols, dtype=dtype_map)
+                emb_df['ip'] = emb_df['ip'].astype(str)
+                matched = emb_df[emb_df['ip'].isin(target_ips)]
+                total_matched = len(matched)
+                _process_matched(matched)
+                del emb_df, matched
+            else:
+                # 分块读取，每块5000行
+                chunk_size = 5000
+                for chunk in pd.read_csv(csv_path, usecols=needed_cols, dtype=dtype_map, chunksize=chunk_size):
+                    chunk['ip'] = chunk['ip'].astype(str)
+                    matched = chunk[chunk['ip'].isin(target_ips)]
+                    if len(matched) == 0:
+                        del chunk
+                        continue
+                    total_matched += len(matched)
+                    _process_matched(matched)
+                    del chunk, matched
+
+            gc.collect()
+            logging.info(f"[HGT] {dev_type}: {total_matched}/{len(target_ips)} IPs matched, {len(ip_to_emb)} embeddings computed")
 
             for ip in group['ip'].values:
                 if str(ip) not in ip_to_emb:
@@ -175,7 +212,7 @@ def load_device_embeddings(device_nodes: pd.DataFrame) -> torch.Tensor:
     return torch.tensor(features, dtype=torch.float)
 
 
-def run_hgt_on_subset(gpu: int, device_types: list, num_epochs: int, node_df: pd.DataFrame, relation_df: pd.DataFrame):
+def run_hgt_on_subset(gpu: int, device_types: list, num_epochs: int, node_df: pd.DataFrame, relation_df: pd.DataFrame, high_mem: bool = False):
     """
     在指定GPU上对一组设备类型运行HGT训练和embedding生成。
     每个设备类型独立保存为 ipraw_{dev}_embedding_overall_raw.csv。
@@ -234,7 +271,7 @@ def run_hgt_on_subset(gpu: int, device_types: list, num_epochs: int, node_df: pd
 
     # ── 构建Device节点初始嵌入 ──
     logging.info(f"{tag} Building device node features...")
-    device_features = load_device_embeddings(subset_device_nodes)
+    device_features = load_device_embeddings(subset_device_nodes, high_mem=high_mem)
     logging.info(f"{tag} Device feature shape: {device_features.shape}")
 
     # ── 构建Feature节点初始嵌入 ──
@@ -354,14 +391,52 @@ def run_hgt_on_subset(gpu: int, device_types: list, num_epochs: int, node_df: pd
     logging.info(f"{tag} Done. Processed {len(device_types)} device types.")
 
 
-def _worker_fn(gpu, device_types, num_epochs, node_csv, relation_csv):
-    """Worker process entry point for multiprocessing."""
-    node_df = pd.read_csv(node_csv)
-    relation_df = pd.read_csv(relation_csv)
-    run_hgt_on_subset(gpu, device_types, num_epochs, node_df, relation_df)
+def _worker_fn(gpu, device_types, num_epochs, subset_node_csv, subset_relation_csv, high_mem=False):
+    """Worker process entry point for multiprocessing.
+    Loads pre-filtered subset CSVs (much smaller than full entity_graph)."""
+    node_df = pd.read_csv(subset_node_csv)
+    relation_df = pd.read_csv(subset_relation_csv)
+    run_hgt_on_subset(gpu, device_types, num_epochs, node_df, relation_df, high_mem=high_mem)
 
 
-def run_hgt(gpu: int = 1, num_epochs: int = 100):
+def _prepare_subset_csvs(device_types, node_df, relation_df, tag):
+    """Filter node_df and relation_df for given device types, save to temp CSVs."""
+    import tempfile
+    tmp_dir = os.path.join(ENTITY_GRAPH_PATH, "tmp_subsets")
+    os.makedirs(tmp_dir, exist_ok=True)
+
+    # Filter device nodes
+    dev_nodes = node_df[
+        (node_df['_labels'] == ':Device') &
+        (node_df['device_type'].isin(device_types))
+    ].copy()
+    dev_ids = set(int(x) for x in dev_nodes['_id'].values)
+
+    # Filter relations: only edges from these devices
+    rel_filtered = relation_df[
+        relation_df['_start'].isin(dev_ids) &
+        relation_df['_type'].fillna('').str.startswith('Has_')
+    ].copy()
+
+    # Collect feature IDs needed
+    feat_ids = set(rel_filtered['_end'].dropna().astype(int).unique().tolist())
+    feat_nodes = node_df[
+        (node_df['_labels'] == ':Feature') &
+        (node_df['_id'].isin(feat_ids))
+    ].copy()
+
+    # Combine and save
+    subset_nodes = pd.concat([dev_nodes, feat_nodes], ignore_index=True)
+    node_path = os.path.join(tmp_dir, f"node_{tag}.csv")
+    rel_path = os.path.join(tmp_dir, f"relation_{tag}.csv")
+    subset_nodes.to_csv(node_path, index=False)
+    rel_filtered.to_csv(rel_path, index=False)
+
+    logging.info(f"[HGT] Subset {tag}: {len(dev_nodes)} devices, {len(feat_nodes)} features, {len(rel_filtered)} relations → temp CSVs")
+    return node_path, rel_path
+
+
+def run_hgt(gpu: int = 1, num_epochs: int = 100, high_mem: bool = False, chunk_only: bool = False):
     """
     使用Heterogeneous Graph Transformer (HGT)在Device-Feature二部图上
     学习每个设备IP的最终向量表示（综合视角嵌入），最终向量维度为1024维。
@@ -408,15 +483,38 @@ def run_hgt(gpu: int = 1, num_epochs: int = 100):
     # ── 单GPU模式 ──
     if gpu != 1 or not torch.cuda.is_available() or torch.cuda.device_count() < 2:
         actual_gpu = gpu if gpu >= 0 else 0
-        logging.info(f"[HGT] Single-GPU mode (gpu={gpu})")
+        logging.info(f"[HGT] Single-GPU mode (gpu={gpu}, high_mem={high_mem}, chunk_only={chunk_only})")
         relation_df = pd.read_csv(relation_csv)
-        run_hgt_on_subset(actual_gpu, all_device_types, num_epochs, node_df, relation_df)
+        run_hgt_on_subset(actual_gpu, all_device_types, num_epochs, node_df, relation_df, high_mem=high_mem)
         return
 
     # ── 双GPU并行模式 ──
-    logging.info("[HGT] Dual-GPU parallel mode")
-    p0 = mp.Process(target=_worker_fn, args=(0, gpu0_devs, num_epochs, node_csv, relation_csv))
-    p1 = mp.Process(target=_worker_fn, args=(1, gpu1_devs, num_epochs, node_csv, relation_csv))
+    # 三种内存模式：
+    #   high_mem:    全量加载CSV，worker直接加载完整entity_graph（H100）
+    #   chunk_only:  chunked读取embedding CSV，worker直接加载完整entity_graph（图结构完整）
+    #   default:     chunked读取 + subset预过滤（图结构可能不完整，最省内存）
+    use_subset = not high_mem and not chunk_only
+    logging.info(f"[HGT] Dual-GPU parallel mode (high_mem={high_mem}, chunk_only={chunk_only}, subset={use_subset})")
+
+    if use_subset:
+        # V100/受限内存环境：主进程预过滤小子集CSV，worker只加载子集
+        logging.info("[HGT] Loading relation.csv for subset preparation...")
+        relation_df = pd.read_csv(relation_csv)
+
+        logging.info("[HGT] Preparing subset CSVs...")
+        gpu0_node_csv, gpu0_rel_csv = _prepare_subset_csvs(gpu0_devs, node_df, relation_df, "gpu0")
+        gpu1_node_csv, gpu1_rel_csv = _prepare_subset_csvs(gpu1_devs, node_df, relation_df, "gpu1")
+
+        # 释放主进程的大DataFrame
+        del node_df, relation_df
+        gc.collect()
+
+        p0 = mp.Process(target=_worker_fn, args=(0, gpu0_devs, num_epochs, gpu0_node_csv, gpu0_rel_csv, False))
+        p1 = mp.Process(target=_worker_fn, args=(1, gpu1_devs, num_epochs, gpu1_node_csv, gpu1_rel_csv, False))
+    else:
+        # high_mem 或 chunk_only：worker直接加载完整entity_graph，图结构完整
+        p0 = mp.Process(target=_worker_fn, args=(0, gpu0_devs, num_epochs, node_csv, relation_csv, high_mem))
+        p1 = mp.Process(target=_worker_fn, args=(1, gpu1_devs, num_epochs, node_csv, relation_csv, high_mem))
 
     p0.start()
     p1.start()
@@ -428,6 +526,14 @@ def run_hgt(gpu: int = 1, num_epochs: int = 100):
         logging.error(f"[HGT] GPU0 worker exited with code {p0.exitcode}")
     if p1.exitcode != 0:
         logging.error(f"[HGT] GPU1 worker exited with code {p1.exitcode}")
+
+    # 清理临时文件（subset模式）
+    if use_subset:
+        for f in [gpu0_node_csv, gpu0_rel_csv, gpu1_node_csv, gpu1_rel_csv]:
+            try:
+                os.remove(f)
+            except OSError:
+                pass
 
     logging.info("[HGT] Dual-GPU training complete.")
 
@@ -442,6 +548,14 @@ def main():
         "--epochs", type=int, default=100,
         help="Number of training epochs (default: 100)"
     )
+    parser.add_argument(
+        "--high-mem", action="store_true", default=False,
+        help="Full-load CSVs, no OOM mitigations. Use on H100 or large-memory hosts."
+    )
+    parser.add_argument(
+        "--chunk-only", action="store_true", default=False,
+        help="Use chunked CSV reading only (no subset pre-filtering). Preserves complete graph structure."
+    )
     args = parser.parse_args()
 
     log_filename = "HGT.log"
@@ -450,7 +564,7 @@ def main():
     file_handler.setFormatter(logging.Formatter('%(asctime)s [%(levelname)s] %(message)s'))
     logging.getLogger().addHandler(file_handler)
 
-    run_hgt(gpu=args.gpu, num_epochs=args.epochs)
+    run_hgt(gpu=args.gpu, num_epochs=args.epochs, high_mem=args.high_mem, chunk_only=args.chunk_only)
 
 
 if __name__ == "__main__":
