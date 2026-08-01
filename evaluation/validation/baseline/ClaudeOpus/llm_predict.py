@@ -67,11 +67,17 @@ TYPE_NORM = {
     "BUILDING_AUTOMATION": "Building_Automation",
     "MEDICAL":             "Medical",
     "ALARM":               "Alarm",
-    "CONTROLLER":          "Controller",
+    "SMART_HOME_CONTROLLER": "Controller",
     "UNKNOWN":             "UNKNOWN",
 }
 
 ALL_DEVICE_TYPES = list(TYPE_NORM.keys())
+
+# Hard constraint: the model may ONLY emit these device types (the 11 evaluation
+# types). UNKNOWN is the sole fallback. ALLOWED_DISPLAY is the post-normalisation
+# form used to validate the model's answer.
+ALLOWED_TYPES   = [k for k in TYPE_NORM if k != "UNKNOWN"]
+ALLOWED_DISPLAY = {v for k, v in TYPE_NORM.items() if k != "UNKNOWN"}
 
 SAVE_INTERVAL = 20   # save checkpoint every N processed IPs
 REQUEST_DELAY = 0.5  # seconds between API calls
@@ -88,11 +94,13 @@ total_api_calls = 0
 # ── Prompts ────────────────────────────────────────────────────────────────────
 SYSTEM_PROMPT = f"""You are an expert in IoT device fingerprinting, classification, and vendor identification.
 Given a device fingerprint derived from network scanning data, you must:
-1. Identify the **device type** — choose exactly one label from the candidates below.
+1. Identify the **device type** — this is a HARD CONSTRAINT: you MUST output exactly one label
+   from the allowed list below and NO other value. If none of them fits, output "UNKNOWN".
 2. Identify the **vendor** (manufacturer / software brand) — return up to 3 candidates.
 
-**Device type candidates**: {', '.join(ALL_DEVICE_TYPES)}
-- Use "UNKNOWN" only if you cannot determine the type.
+**Allowed device types** (hard constraint — emit exactly one of these, or UNKNOWN):
+{', '.join(ALLOWED_TYPES)}
+- Do NOT invent or output any device type outside this list.
 
 **Vendor identification rules**:
 - Return 1–3 vendors clearly supported by the evidence.
@@ -158,6 +166,13 @@ def normalise_type(raw: str) -> str:
     """Map LLM-returned type string to canonical display format."""
     key = raw.upper().strip().replace(" ", "_")
     return TYPE_NORM.get(key, raw)
+
+
+def enforce_constraint(pred: str) -> str:
+    """Hard-constraint guard: anything outside the allowed set collapses to UNKNOWN."""
+    if pred not in ALLOWED_DISPLAY and pred != "UNKNOWN":
+        return "UNKNOWN"
+    return pred
 
 
 def extract_vendor_list(vendor_top3) -> list:
@@ -238,7 +253,7 @@ for dev in TYPES:
             total_output_tokens += usage["completion_tokens"]
             total_api_calls += 1
 
-            pred_type = normalise_type(response.get("device_type", "UNKNOWN"))
+            pred_type = enforce_constraint(normalise_type(response.get("device_type", "UNKNOWN")))
             vendors   = extract_vendor_list(response.get("vendor_top3", []))
 
             entry = {
