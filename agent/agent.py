@@ -783,6 +783,7 @@ class IoTDecisionGraph:
         from langchain_core.messages import (
             AIMessage, HumanMessage, SystemMessage, ToolMessage,
         )
+        from tools.tavily_search import TAVILY_TOOLS
 
         from decision import (
             RetrievalToolRuntime,
@@ -863,6 +864,7 @@ class IoTDecisionGraph:
                 "community_result": Optional[dict],
                 "web_search_results": str,
                 "unseen_iter": int,
+                "unseen_messages": Annotated[list, add_messages],
                 "unseen_result": dict,
                 "first_stage": dict,
                 "drift_result": Optional[dict],
@@ -874,9 +876,14 @@ class IoTDecisionGraph:
             },
         )
 
+        self._tavily_tools = TAVILY_TOOLS
+
         g = StateGraph(GraphState)
         g.add_node("unseen", self._unseen_node)
-        g.add_node("unseen_tools", self._unseen_tools_node)
+        g.add_node(
+            "unseen_tools",
+            ToolNode(self._tavily_tools, messages_key="unseen_messages"),
+        )
         g.add_node("gate", self._gate_node)
         g.add_node("drift", self._drift_node)
         g.add_node("prepare", self._prepare_decision_node)
@@ -1019,7 +1026,18 @@ class IoTDecisionGraph:
                 "community_result": community_result,
             }
 
-        web_results = state.get("web_search_results") or None
+        # Extract web search results from ToolMessages (returning from unseen_tools)
+        unseen_messages = state.get("unseen_messages", [])
+        tool_results = []
+        for msg in unseen_messages:
+            if isinstance(msg, self._ToolMessage):
+                content = msg.content if isinstance(msg.content, str) else str(msg.content)
+                if content:
+                    tool_results.append(content)
+        web_results = (
+            "\n\n".join(tool_results) if tool_results
+            else (state.get("web_search_results") or None)
+        )
         try:
             res = detector.detect_unseen(
                 reasoning_result=reasoning_result,
@@ -1032,12 +1050,36 @@ class IoTDecisionGraph:
         except Exception as exc:
             logging.warning("Unseen detection failed for %s: %s", ip, exc)
             res = unavailable
-        return {
+
+        update = {
             "unseen_result": res,
             "reasoning_result": reasoning_result,
             "local_result": local_result,
             "community_result": community_result,
         }
+
+        # If web search is needed, emit AIMessage with tool_calls for the ToolNode
+        current_iter = state.get("unseen_iter", 0)
+        if (
+            res.get("needs_web_search")
+            and res.get("search_queries")
+            and current_iter < self._MAX_WEB_ITERS
+        ):
+            queries = res["search_queries"][:3]
+            tool_calls = [
+                {
+                    "name": "tavily_web_search",
+                    "args": {"query": q},
+                    "id": f"unseen_search_{current_iter}_{i}",
+                }
+                for i, q in enumerate(queries)
+            ]
+            update["unseen_messages"] = [
+                self._AIMessage(content="", tool_calls=tool_calls)
+            ]
+            update["unseen_iter"] = current_iter + 1
+
+        return update
 
     def _route_after_unseen(self, state: dict) -> str:
         res = state.get("unseen_result", {})
@@ -1048,22 +1090,6 @@ class IoTDecisionGraph:
         ):
             return "search"
         return "gate"
-
-    def _unseen_tools_node(self, state: dict) -> dict:
-        """Tavily web-search tool node feeding the unseen ReAct loop."""
-        queries = state.get("unseen_result", {}).get("search_queries", [])
-        collected = [state.get("web_search_results", "")] if state.get("web_search_results") else []
-        try:
-            from tools.tavily_search import search_web_formatted
-            for query in queries[:3]:
-                collected.append(search_web_formatted(query, max_results=3))
-        except Exception as exc:
-            logging.warning("Tavily web search failed: %s", exc)
-            collected.append(f"(Web search failed: {exc})")
-        return {
-            "web_search_results": "\n\n".join(c for c in collected if c),
-            "unseen_iter": state.get("unseen_iter", 0) + 1,
-        }
 
     # ── condition (gate) + drift node ─────────────────────────────────────────
 
@@ -1209,6 +1235,7 @@ class IoTDecisionGraph:
             "community_result": None,
             "web_search_results": "",
             "unseen_iter": 0,
+            "unseen_messages": [],
             "unseen_result": {},
             "first_stage": {},
             "drift_result": None,

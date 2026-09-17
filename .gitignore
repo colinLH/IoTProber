@@ -2,19 +2,12 @@
 __pycache__/
 backup/
 drift_data/
+platform_data/
 qwen3_embedding_06b/
 
-# Virtual environments
-.venv-iotprober/
-.venv/
-venv/
+# Large data files
+*.csv
 
 # Python
 *.pyc
 *.pyo
-
-# Sensitive config
-llm_config.json
-
-# Large dataset files (>2GB, exceeds GitHub LFS limit)
-evaluation/unseen/llama3/dataset/unseen_sft.jsonl

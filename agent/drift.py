@@ -31,7 +31,6 @@ from sklearn.preprocessing import LabelEncoder, StandardScaler
 from sklearn.feature_extraction.text import TfidfVectorizer
 from scipy.stats import median_abs_deviation
 from collections import OrderedDict
-import joblib
 import logging
 import time
 
@@ -404,109 +403,7 @@ def explain_drift(ref_ps, test_ps, p_idx, mad_thr=3.5):
 
 
 # ═══════════════════════════════════════════════════════════
-# 8. Single-Device Inference (在线检测: 对单个查询设备打分)
-# ═══════════════════════════════════════════════════════════
-
-class DriftDetector:
-    """
-    加载训练好的 PACA 模型与预处理产物, 对单个 (或一批) 查询设备做 in-class concept drift 检测.
-    Load a trained PACA model + preprocessing artifacts and score a single (or a few)
-    queried device(s) for in-class concept drift, following the paper's detection rule:
-
-        S(x) = Σ_p α_p · (1/|C_p|) Σ_{k∈C_p} (x_k − x̂_k)²
-        drift  ⟺  S(x) > τ = median(S_ref) + γ · MAD(S_ref)   (γ = mad_thr, default 3.5)
-
-    与训练完全一致地复用参考集拟合的 vectorizers / scaler / 阈值, 因此可在
-    decision 流程的 first-stage 中对「查询设备」进行判定, 无需重新训练.
-    """
-
-    def __init__(self, model_dir=DRIFT_OUTPUT_DIR, torch_device="cpu"):
-        self.device = torch_device
-        art_path = os.path.join(model_dir, "paca_artifacts.pkl")
-        ckpt_path = os.path.join(model_dir, "paca_model.pt")
-        if not os.path.exists(art_path) or not os.path.exists(ckpt_path):
-            raise FileNotFoundError(
-                f"Missing PACA artifacts/model in {model_dir}. "
-                f"Run run_drift_detection() first to train and persist them."
-            )
-
-        self.art = joblib.load(art_path)
-        ckpt = torch.load(ckpt_path, map_location=torch_device)
-        self.model = PerspectiveAwareCAE(ckpt["dim"], ckpt["hidden"], ckpt["latent"]).to(torch_device)
-        self.model.load_state_dict(ckpt["state"])
-        self.model.eval()
-
-        self.p_idx = self.art["p_idx"]
-        self.threshold = self.art["threshold"]
-        self.mad_thr = self.art.get("mad_thr", 3.5)
-        self.ref_ps = self.art.get("ref_ps", {})
-        logger.info(f"DriftDetector ready (τ={self.threshold:.4f}, mad_thr={self.mad_thr}).")
-
-    def _prepare(self, fingerprint):
-        """Accept a dict or DataFrame; build the feature matrix using the SAME
-        fitted vectorizers/scaler/columns as training, so dimensions align."""
-        if isinstance(fingerprint, dict):
-            df = pd.DataFrame([fingerprint])
-        else:
-            df = fingerprint.copy()
-        for col in USE_COLS:
-            if col not in df.columns:
-                df[col] = np.nan
-        X, _, _, _ = build_feature_matrix(
-            df, vectorizers=self.art["vectorizers"],
-            cat_columns_map=self.art["cat_columns_map"], fit=False,
-        )
-        return self.art["scaler"].transform(X)
-
-    def detect_query_device(self, fingerprint):
-        """
-        判定单个查询设备是否发生 in-class concept drift.
-        Decide whether one queried device has drifted in-class.
-
-        Args:
-            fingerprint: 查询设备的原始特征 dict (列名与 USE_COLS 对齐即可).
-                         Raw feature dict of the queried device.
-
-        Returns:
-            {
-                "drift_score": float S(x),
-                "threshold":   float τ,
-                "is_drift":    bool  (S(x) > τ),
-                "per_perspective_z": {p: z-score},   # 可解释性: 各视角偏移程度
-                "drifted_perspectives": [p, ...],    # z > γ 的视角
-            }
-        """
-        X_s = self._prepare(fingerprint)
-        score, ps = compute_drift_scores(self.model, X_s, self.p_idx, self.device)
-        s_val = float(score[0])
-
-        # 逐 perspective z-score (相对参考集), 用于可解释的漂移归因
-        # Per-perspective z-scores vs reference, for interpretable drift attribution
-        per_z, drifted = {}, []
-        for p in self.p_idx:
-            test_ps = float(ps[p][0])
-            ref = self.ref_ps.get(p)
-            if ref is not None and len(ref) > 0:
-                med = float(np.median(ref))
-                mad = float(max(median_abs_deviation(ref), 1e-10))
-                z = (test_ps - med) / mad
-            else:
-                z = 0.0
-            per_z[p] = z
-            if z > self.mad_thr:
-                drifted.append(p)
-
-        return {
-            "drift_score": s_val,
-            "threshold": float(self.threshold),
-            "is_drift": bool(s_val > self.threshold),
-            "per_perspective_z": dict(sorted(per_z.items(), key=lambda x: x[1], reverse=True)),
-            "drifted_perspectives": drifted,
-        }
-
-
-# ═══════════════════════════════════════════════════════════
-# 9. Full Pipeline
+# 8. Full Pipeline
 # ═══════════════════════════════════════════════════════════
 
 def run_drift_detection(
@@ -551,27 +448,6 @@ def run_drift_detection(
 
     # ── Reference scores ──
     ref_scores, ref_ps = compute_drift_scores(model, X_ref_s, p_idx, torch_device)
-
-    # ── Persist preprocessing artifacts + robust threshold for single-device inference ──
-    #    A queried device can later be scored via detect_query_device() without re-training.
-    #    保存预处理器与鲁棒阈值, 供后续对单个查询设备做在线检测 (无需重新训练).
-    ref_med = float(np.median(ref_scores))
-    ref_mad = float(max(median_abs_deviation(ref_scores), 1e-10))
-    ref_thr = ref_med + mad_thr * ref_mad
-    artifacts = {
-        "vectorizers": vecs,
-        "cat_columns_map": cmap,
-        "scaler": scaler,
-        "p_idx": p_idx,
-        "ref_scores": ref_scores,
-        "ref_ps": ref_ps,
-        "median": ref_med,
-        "mad": ref_mad,
-        "mad_thr": mad_thr,
-        "threshold": ref_thr,
-    }
-    joblib.dump(artifacts, os.path.join(output_dir, "paca_artifacts.pkl"))
-    logger.info(f"Saved preprocessing artifacts + threshold (τ={ref_thr:.4f}) → paca_artifacts.pkl")
 
     # ── Load test ──
     logger.info("Loading test data ...")
