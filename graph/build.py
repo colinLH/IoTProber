@@ -20,7 +20,7 @@ def feature_to_rel_type(feature_name: str) -> str:
 
 
 class HierarchicalGraph:
-    def __init__(self):
+    def __init__(self, devices=None):
         self.base_path = os.path.dirname(os.path.dirname(__file__))
         self.data_path = os.path.join(self.base_path, "platform_data", "csv", "local", "1")
         self.community_path = os.path.join(self.data_path, "community", "single")
@@ -28,7 +28,7 @@ class HierarchicalGraph:
         self.graph = ProtocolGraph("neo4j://localhost:7687", "neo4j", "avs01046")
 
         self.fingerprint_features = self._load_fingerprint_features()
-        self.device_labels = self._discover_device_labels()
+        self.device_labels = self._discover_device_labels(devices=devices)
         self.perspectives = self._discover_perspectives()
 
         # Global, monotonically-increasing cluster-ID counters. Each single
@@ -52,12 +52,16 @@ class HierarchicalGraph:
         log.info(f"Loaded {len(features)} fingerprint features: {features}")
         return features
 
-    def _discover_device_labels(self):
+    def _discover_device_labels(self, devices=None):
         device_labels = []
         for fname in sorted(os.listdir(self.data_path)):
             if fname.startswith("ipraw_") and fname.endswith(".csv"):
                 dev = fname[len("ipraw_"):-len(".csv")]
                 device_labels.append(dev)
+        if devices:
+            device_set = set(devices)
+            device_labels = [d for d in device_labels if d in device_set]
+            log.info(f"Device filter applied: {device_labels}")
         log.info(f"Discovered {len(device_labels)} device types: {device_labels}")
         return device_labels
 
@@ -435,9 +439,11 @@ if __name__ == "__main__":
                         help="Build Layer 2 + Layer 3 (community graphs) only")
     parser.add_argument("--all", action="store_true",
                         help="Build all layers (Layer1 + Layer2 + Layer3), same as legacy run()")
+    parser.add_argument("--devices", nargs="*", default=None,
+                        help="Device types to process (default: all discovered)")
     args = parser.parse_args()
 
-    graph = HierarchicalGraph()
+    graph = HierarchicalGraph(devices=args.devices)
 
     # Default (no flag) = legacy full build, for backward compatibility.
     if not (args.layer1 or args.export or args.layer23 or args.all):

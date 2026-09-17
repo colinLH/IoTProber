@@ -3,15 +3,8 @@ agent/decision.py
 
 IoT Device Type Decision Agent.
 Uses LangChain to build two independent classification agents (Gemini + Claude),
-each equipped with a single unified multi-level retrieval tool. Joint voting by
-confidence score determines the final device type and vendor prediction.
-
-First-stage gate (per Figure 1 "First-stage Results"):
-  1. Unseen detection (fine-tuned LLaMA)   → new_type_probability, new_vendor_probability + labels.
-  2. If BOTH probabilities < 0.5, run in-class concept-drift detection (PACA AutoEncoder)
-     → probability / verdict of in-class concept drift for the queried device.
-  3. Regardless of the first-stage outcome, joint voting (Gemini + Claude) produces the
-     final device type + vendor with reasoning.
+each equipped with three RAG retrieval tools. Joint voting by confidence score
+determines the final device type and vendor prediction.
 """
 
 import os
@@ -20,7 +13,6 @@ import json
 import re
 import logging
 import time
-from threading import RLock
 from typing import Any, Dict, List, Optional
 
 import pandas as pd
@@ -28,8 +20,8 @@ import pandas as pd
 # ── project root on path ──────────────────────────────────────────────────────
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from langchain_core.tools import tool
-from langchain_classic.agents import AgentExecutor, create_openai_tools_agent
+from langchain.tools import tool
+from langchain.agents import AgentExecutor, create_openai_tools_agent
 from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_core.messages import SystemMessage, HumanMessage
@@ -49,7 +41,7 @@ _BASE      = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 _LOCAL_RAW = os.path.join(_BASE, "platform_data", "csv", "local", "1")
 _VAL_PATH  = os.path.join(_BASE, "evaluation", "validation")
 _QDB_PATH  = os.path.join(_BASE, "agent", "query_db")
-_RES_PATH  = os.path.join(_BASE, "evaluation", "predict")
+_RES_PATH  = os.path.join(_BASE, "evaluation", "predict", "result")
 _CFG_PATH  = os.path.join(_BASE, "llm_config.json")
 
 # ── module-level state shared with @tool closures ─────────────────────────────
@@ -57,15 +49,8 @@ _dev_labels: List[str] = []
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# §1  Multi-Level Retrieval Tool (three retrieval levels unified as ONE tool)
+# §1  Retrieval Tool Definitions
 # ═════════════════════════════════════════════════════════════════════════════
-#
-# Per the framework's control plane ("Multi-Level Retrieval [As a Tool]"), the three
-# retrieval algorithms implemented by agent/retrieval.py::MultiLevelRetrieval —
-# local-entity, community, and reasoning-path — are exposed to the Decision Agent as
-# a SINGLE tool (`multi_level_retrieval`). One call returns all three retrieval levels
-# for the query device, so the agent invokes retrieval once rather than orchestrating
-# three separate tools.
 
 def _lookup_qdb(sub: str, ip: str) -> Dict:
     """
@@ -85,48 +70,51 @@ def _lookup_qdb(sub: str, ip: str) -> Dict:
     return {"status": "not_found", "ip": ip}
 
 
-def _lookup_result(sub: str, ip: str) -> Optional[Dict]:
+@tool
+def local_retrieval(ip: str) -> str:
     """
-    Return the full retrieval-result record (local / community / reasoning) for *ip*
-    from query_db/{sub}/, or None if not found. Used to feed the unseen detector
-    with the same structured retrieval outputs it consumes at inference time.
-    """
-    hit = _lookup_qdb(sub, ip)
-    return hit["entry"] if hit.get("status") == "found" else None
+    Local embedding-based retrieval: retrieve the top-k most similar known IoT
+    devices to the query device by comparing multi-perspective network fingerprint
+    embeddings stored in the vector database.
 
+    Returns top-k similar devices with device_type and cosine similarity scores.
+    Call this tool FIRST to identify strong candidate device types.
 
-# ── Level 1: Local entity retrieval section ───────────────────────────────────
-
-def _local_section(ip: str) -> Dict:
-    """
-    Local embedding-based retrieval: top-k most similar known IoT devices to the
-    query device, by comparing multi-perspective network fingerprint embeddings
-    stored in the vector database. Returns device_type + cosine similarity scores.
+    Args:
+        ip: IP address of the query device.
     """
     hit = _lookup_qdb("local", ip)
     if hit["status"] == "not_found":
-        return {"status": "not_found"}
+        return json.dumps(hit, ensure_ascii=False)
 
     entry = hit["entry"]
-    return {
-        "status": "found",
-        "candidate_dev": hit["candidate_dev"],
-        "top_k": entry.get("top_k", 5),
-        "similar_devices": entry.get("similar_devices", []),
-    }
+    return json.dumps(
+        {
+            "status": "found",
+            "candidate_dev": hit["candidate_dev"],
+            "top_k": entry.get("top_k", 5),
+            "similar_devices": entry.get("similar_devices", []),
+        },
+        ensure_ascii=False,
+        indent=2,
+    )
 
 
-# ── Level 2: Community / cluster-level retrieval section ───────────────────────
-
-def _community_section(ip: str) -> Dict:
+@tool
+def community_retrieval(ip: str) -> str:
     """
-    Community / cluster-level retrieval: which device behaviour clusters the query
-    device belongs to (based on the similar IPs from local retrieval). Returns
-    matched cluster common-pattern reports and per-cluster similarity scores.
+    Community / cluster-level retrieval: identifies which device behaviour clusters
+    the query device belongs to, based on the similar IPs found in local retrieval.
+    Returns matched cluster common-pattern reports and per-cluster similarity scores.
+
+    Call this tool SECOND to obtain cluster-level contextual evidence.
+
+    Args:
+        ip: IP address of the query device.
     """
     hit = _lookup_qdb("community", ip)
     if hit["status"] == "not_found":
-        return {"status": "not_found"}
+        return json.dumps(hit, ensure_ascii=False)
 
     entry = hit["entry"]
     matched = entry.get("matched_clusters", [])
@@ -154,24 +142,33 @@ def _community_section(ip: str) -> Dict:
             }
         )
 
-    return {
-        "status":         "found",
-        "total_clusters": entry.get("total_clusters", len(matched)),
-        "matched_clusters": trimmed,
-    }
+    return json.dumps(
+        {
+            "status":         "found",
+            "total_clusters": entry.get("total_clusters", len(matched)),
+            "matched_clusters": trimmed,
+        },
+        ensure_ascii=False,
+        indent=2,
+    )
 
 
-# ── Level 3: Reasoning-path retrieval section ─────────────────────────────────
-
-def _reasoning_section(ip: str) -> Dict:
+@tool
+def reasoning_path_retrieval(ip: str) -> str:
     """
-    Reasoning path retrieval: the key discriminative features that place the query
-    device into a particular cluster, via Shannon entropy-based feature importance.
-    Returns path matching scores and weighted per-feature similarity breakdowns.
+    Reasoning path retrieval: analyses the key discriminative features that place
+    the query device into a particular cluster, using Shannon entropy-based feature
+    importance scoring.  Returns path matching scores and weighted per-feature
+    similarity breakdowns.
+
+    Call this tool LAST to understand the most discriminative evidence.
+
+    Args:
+        ip: IP address of the query device.
     """
     hit = _lookup_qdb("reasoning", ip)
     if hit["status"] == "not_found":
-        return {"status": "not_found"}
+        return json.dumps(hit, ensure_ascii=False)
 
     entry = hit["entry"]
     path_results = entry.get("path_matching_results", [])
@@ -202,216 +199,18 @@ def _reasoning_section(ip: str) -> Dict:
 
     summary = entry.get("summary") or {}
     top_cluster = summary.get("top_cluster") or {}
-    return {
-        "status":               "found",
-        "path_matching_results": trimmed,
-        "top_cluster_key":      top_cluster.get("cluster_key"),
-    }
+    return json.dumps(
+        {
+            "status":               "found",
+            "path_matching_results": trimmed,
+            "top_cluster_key":      top_cluster.get("cluster_key"),
+        },
+        ensure_ascii=False,
+        indent=2,
+    )
 
 
-@tool
-def multi_level_retrieval(ip: str) -> str:
-    """
-    Multi-Level Retrieval — the single unified RAG tool for the Decision Agent.
-    In one call it runs all THREE retrieval levels for the query device and returns
-    their combined evidence:
-
-      1. local_entity_retrieval    – top-k most similar known devices (vector similarity)
-      2. community_retrieval       – cluster-level behavioural common-pattern reports
-      3. reasoning_path_retrieval  – key discriminative features (Shannon-entropy importance)
-
-    Call this tool ONCE per device; it returns all three retrieval levels together,
-    so there is no need to invoke separate retrieval tools.
-
-    Args:
-        ip: IP address of the query device.
-    """
-    combined = {
-        "ip": ip,
-        "local_entity_retrieval":   _local_section(ip),
-        "community_retrieval":      _community_section(ip),
-        "reasoning_path_retrieval": _reasoning_section(ip),
-    }
-    return json.dumps(combined, ensure_ascii=False, indent=2)
-
-
-_TOOLS = [multi_level_retrieval]
-
-
-# ═════════════════════════════════════════════════════════════════════════════
-# §1b  Configurable Retrieval Tool Runtime (for the LangGraph decision branches)
-# ═════════════════════════════════════════════════════════════════════════════
-#
-# The LangGraph decision LLM nodes call ONE unified retrieval tool. Which of the
-# three retrieval algorithms it actually runs is controlled by the CLI flags
-# (--local / --community / --reasoning); when none are supplied the default is
-# "all". The runtime lazily runs the live MultiLevelRetrieval algorithms for the
-# enabled levels (skipping any already cached in query_db), then returns the same
-# trimmed evidence sections consumed by the legacy tool.
-
-class RetrievalToolRuntime:
-    """
-    可配置的检索工具运行时: 按 (--local / --community / --reasoning) 选择要运行的检索算法, 默认全部.
-    Configurable retrieval runtime shared by the LangGraph decision branches.
-    """
-
-    def __init__(
-        self,
-        whether_local: bool = True,
-        whether_community: bool = True,
-        whether_reasoning: bool = True,
-        top_k: int = 5,
-        llm_type: str = "CLAUDE",
-        retrieval_agent: Any = None,
-    ):
-        # 若三者都未开启, 默认运行全部 / default to all when nothing is enabled
-        if not (whether_local or whether_community or whether_reasoning):
-            whether_local = whether_community = whether_reasoning = True
-        self.whether_local = whether_local
-        self.whether_community = whether_community
-        self.whether_reasoning = whether_reasoning
-        self.top_k = top_k
-        self.llm_type = llm_type
-        self.retrieval_agent = retrieval_agent
-        self._context: Dict[str, Dict[str, Any]] = {}
-        self._lock = RLock()
-
-    # ── per-IP context (device label + fingerprint) ──
-    def register(self, ip: str, device_name: str, fingerprint: Dict[str, Any]) -> None:
-        with self._lock:
-            self._context[str(ip)] = {
-                "device_name": device_name,
-                "fingerprint": fingerprint,
-            }
-            global _dev_labels
-            if device_name and device_name not in _dev_labels:
-                _dev_labels = list(_dev_labels) + [device_name]
-
-    def _ensure_retrieved(self, ip: str, ctx: Dict[str, Any]) -> None:
-        """Run the enabled retrieval algorithms for levels not yet cached in query_db."""
-        if self.retrieval_agent is None:
-            return
-        device_name = ctx["device_name"]
-        fingerprint = ctx["fingerprint"]
-        existing_local, existing_community, existing_reasoning = (
-            self.retrieval_agent.load_retrieval_result_by_type(ip, device_name)
-        )
-        need_local = self.whether_local and existing_local is None
-        need_community = self.whether_community and existing_community is None
-        need_reasoning = self.whether_reasoning and existing_reasoning is None
-        if not (need_local or need_community or need_reasoning):
-            return
-        # community / reasoning cascade requires local + community to exist
-        run_local = need_local
-        run_community = need_community or (need_reasoning and existing_community is None)
-        with self._lock:
-            self.retrieval_agent.run_retrieval_algorithm(
-                test_fingerprint=fingerprint,
-                top_k=self.top_k,
-                whether_local=run_local,
-                whether_community=run_community,
-                whether_reasoning=need_reasoning,
-                local_result=existing_local,
-                community_result=existing_community,
-                llm_type=self.llm_type,
-                device_name=device_name,
-            )
-            self.retrieval_agent.clear_history()
-
-    def ensure(self, ip: str) -> None:
-        """Public helper: run enabled retrieval algorithms for *ip* if not cached."""
-        ctx = self._context.get(str(ip))
-        if ctx is not None:
-            self._ensure_retrieved(str(ip), ctx)
-
-    def run(self, ip: str) -> Dict[str, Any]:
-        ip = str(ip)
-        ctx = self._context.get(ip)
-        if ctx is not None:
-            try:
-                self._ensure_retrieved(ip, ctx)
-            except Exception as exc:  # pragma: no cover - live retrieval is best-effort
-                logging.warning("Live retrieval failed for %s: %s", ip, exc)
-
-        combined: Dict[str, Any] = {"ip": ip, "levels_run": []}
-        if self.whether_local:
-            combined["local_entity_retrieval"] = _local_section(ip)
-            combined["levels_run"].append("local")
-        if self.whether_community:
-            combined["community_retrieval"] = _community_section(ip)
-            combined["levels_run"].append("community")
-        if self.whether_reasoning:
-            combined["reasoning_path_retrieval"] = _reasoning_section(ip)
-            combined["levels_run"].append("reasoning")
-        return combined
-
-
-# module-level runtime consulted by the configurable tool closure
-_retrieval_runtime: Optional[RetrievalToolRuntime] = None
-
-
-def set_retrieval_runtime(runtime: Optional[RetrievalToolRuntime]) -> None:
-    """Register the runtime that the configurable retrieval tool should use."""
-    global _retrieval_runtime
-    _retrieval_runtime = runtime
-
-
-@tool
-def configurable_multi_level_retrieval(ip: str) -> str:
-    """
-    Multi-Level Retrieval — the single unified RAG tool for the Decision Agent.
-    It runs the enabled retrieval algorithms (local-entity, community, and/or
-    reasoning-path, selected via the --local/--community/--reasoning flags,
-    defaulting to all) for the query device and returns their combined evidence.
-
-    You MUST call this tool exactly once, before any analysis, and base your
-    reasoning on its result.
-
-    Args:
-        ip: IP address of the query device.
-    """
-    runtime = _retrieval_runtime
-    if runtime is not None:
-        combined = runtime.run(ip)
-    else:
-        combined = {
-            "ip": ip,
-            "local_entity_retrieval": _local_section(ip),
-            "community_retrieval": _community_section(ip),
-            "reasoning_path_retrieval": _reasoning_section(ip),
-        }
-    return json.dumps(combined, ensure_ascii=False, indent=2)
-
-
-# ═════════════════════════════════════════════════════════════════════════════
-# §1c  Shared helpers for the LangGraph decision branches
-# ═════════════════════════════════════════════════════════════════════════════
-
-def extract_decision_json(text: str) -> Dict[str, Any]:
-    """Module-level wrapper around the robust JSON extractor."""
-    return DecisionAgent._extract_json(text)
-
-
-def normalize_decision(parsed: Dict[str, Any], llm_name: str, raw_output: str) -> Dict[str, Any]:
-    """Normalise a parsed LLM answer into the canonical classification dict."""
-    parsed = dict(parsed or {})
-    parsed.setdefault("device_type", "UNKNOWN")
-    parsed.setdefault("device_type_reason", "")
-    parsed.setdefault("vendor", "Unknown")
-    parsed.setdefault("vendor_reason", "")
-    parsed["confidence"] = float(parsed.get("confidence", 0.0))
-    parsed["device_type"] = str(parsed["device_type"]).upper().strip()
-    parsed["vendor"] = str(parsed.get("vendor", "Unknown"))
-    parsed["device_type_reason"] = str(parsed.get("device_type_reason", ""))
-    parsed["vendor_reason"] = str(parsed.get("vendor_reason", ""))
-    parsed["llm"] = llm_name
-    parsed["full_response"] = raw_output
-    return parsed
-
-
-def joint_vote(gemini: Dict[str, Any], claude: Dict[str, Any]) -> Dict[str, Any]:
-    """Module-level wrapper around the DecisionAgent joint-voting strategy."""
-    return DecisionAgent._joint_vote(gemini, claude)
+_TOOLS = [local_retrieval, community_retrieval, reasoning_path_retrieval]
 
 
 # ═════════════════════════════════════════════════════════════════════════════
@@ -427,18 +226,13 @@ traffic fingerprinting. Your mission is to identify the **device type** and
 CAMERA | NVR | ROUTER | NAS | PRINTER | MEDICAL | SCADA | BUILDING_AUTOMATION | POWER_METER
 
 ## Your Workflow
-You have access to ONE unified multi-level retrieval tool that returns the
-enabled retrieval levels in a single call:
-  multi_level_retrieval(ip) → {
-     local_entity_retrieval:    top-k similar known devices,
-     community_retrieval:       cluster-level behavioural patterns,
-     reasoning_path_retrieval:  discriminative feature importance
-  }
+You have access to three retrieval tools. Call them in order:
+  1. local_retrieval(ip)           – get top-k similar known devices
+  2. community_retrieval(ip)       – get cluster-level behavioral patterns
+  3. reasoning_path_retrieval(ip)  – get discriminative feature importance
 
-You MUST call the multi_level_retrieval tool EXACTLY ONCE, as your very first
-action, before producing any analysis. Do NOT emit your final JSON answer until
-you have received the tool result. After the tool returns, reason step by step
-through the Chain-of-Thought framework below, then emit your final JSON answer.
+After collecting all tool results, reason step by step through the
+Chain-of-Thought framework below, then emit your final JSON answer.
 
 ## Chain-of-Thought Reasoning Framework
 
@@ -518,7 +312,7 @@ Raw network fingerprint (excluding null fields):
 {fingerprint}
 ```
 
-Call the multi_level_retrieval tool for this IP, then apply the 9-step reasoning
+Call all three retrieval tools for this IP, then apply the 9-step reasoning
 framework, and output your final JSON classification.
 """
 
@@ -532,7 +326,7 @@ class DecisionAgent:
     LangChain-based IoT device classification agent.
 
     Two independent LangChain AgentExecutors (Gemini + Claude) each:
-      - call the unified multi_level_retrieval tool (local + community + reasoning_path)
+      - call three RAG retrieval tools (local / community / reasoning_path)
       - perform 9-step chain-of-thought reasoning
       - output {device_type, vendor, confidence}
 
@@ -542,14 +336,7 @@ class DecisionAgent:
 
     # ── construction ─────────────────────────────────────────────────────────
 
-    def __init__(
-        self,
-        enable_first_stage: bool = True,
-        unseen_adapter_path: Optional[str] = None,
-        unseen_load_in_4bit: bool = True,
-        drift_model_dir: Optional[str] = None,
-        gpu: int = -1,
-    ):
+    def __init__(self):
         os.makedirs(_RES_PATH, exist_ok=True)
 
         with open(_CFG_PATH, "r") as fh:
@@ -558,16 +345,6 @@ class DecisionAgent:
         self.dev_labels: List[str] = load_all_dev_labels() or []
         global _dev_labels
         _dev_labels = self.dev_labels
-
-        # ── first-stage (unseen + drift) configuration ──
-        # 第一阶段 (unseen + drift) 检测配置; 模型缺失时自动降级跳过, 不阻断联合投票
-        self.enable_first_stage = enable_first_stage
-        self._unseen_adapter_path = unseen_adapter_path
-        self._unseen_load_in_4bit = unseen_load_in_4bit
-        self._drift_model_dir = drift_model_dir
-        self._gpu = gpu
-        self._unseen_detector = None   # lazy-loaded UnseenDeviceDetector
-        self._drift_detector = None    # lazy-loaded DriftDetector
 
         # LangChain LLM clients (both accessed via OpenAI-compatible endpoints)
         self.gemini_llm = ChatOpenAI(
@@ -589,123 +366,13 @@ class DecisionAgent:
         self._gemini_executor = self._build_agent(self.gemini_llm)
         self._claude_executor  = self._build_agent(self.claude_llm)
 
-        logging.info(
-            "DecisionAgent initialised (Gemini + Claude, first_stage=%s).",
-            self.enable_first_stage,
-        )
-
-    # ── first-stage detector loaders (lazy, fail-safe) ─────────────────────────
-
-    def _get_unseen_detector(self):
-        """
-        懒加载 UnseenDeviceDetector (微调后的 LLaMA-3.1-8B, LoRA 4-bit).
-        Lazily load the fine-tuned-LLaMA unseen detector. Returns None on failure
-        so that decision-making degrades gracefully to joint voting only.
-        """
-        if self._unseen_detector is not None:
-            return self._unseen_detector
-        try:
-            from unseen import UnseenDeviceDetector
-            self._unseen_detector = UnseenDeviceDetector(
-                adapter_path=self._unseen_adapter_path,
-                gpu=self._gpu,
-                load_in_4bit=self._unseen_load_in_4bit,
-            )
-        except Exception as exc:
-            logging.warning("Unseen detector unavailable, skipping: %s", exc)
-            self._unseen_detector = None
-        return self._unseen_detector
-
-    def _get_drift_detector(self):
-        """
-        懒加载 DriftDetector (训练好的 PACA AutoEncoder).
-        Lazily load the trained PACA drift detector. Returns None on failure.
-        """
-        if self._drift_detector is not None:
-            return self._drift_detector
-        try:
-            from drift import DriftDetector, DRIFT_OUTPUT_DIR
-            model_dir = self._drift_model_dir or DRIFT_OUTPUT_DIR
-            self._drift_detector = DriftDetector(model_dir=model_dir)
-        except Exception as exc:
-            logging.warning("Drift detector unavailable, skipping: %s", exc)
-            self._drift_detector = None
-        return self._drift_detector
-
-    def _run_first_stage(
-        self, ip: str, fingerprint: Dict
-    ) -> Optional[Dict[str, Any]]:
-        """
-        执行第一阶段: 先 unseen 检测, 若「新类型」与「新厂商」概率均 < 0.5, 再做 drift 检测.
-        Run the first-stage gate: unseen detection first; only when BOTH the
-        new-type and new-vendor probabilities are < 0.5 do we run in-class
-        concept-drift detection for the queried device.
-
-        Returns a dict summarising the first-stage outcome, or None if disabled /
-        no detector is available (so downstream joint voting is unaffected).
-        """
-        if not self.enable_first_stage:
-            return None
-
-        summary: Dict[str, Any] = {}
-
-        # ── 1) Unseen detection ──
-        detector = self._get_unseen_detector()
-        unseen_res = None
-        if detector is not None:
-            try:
-                local_result = _lookup_result("local", ip)
-                community_result = _lookup_result("community", ip)
-                reasoning_result = _lookup_result("reasoning", ip)
-                if reasoning_result is not None:
-                    unseen_res = detector.detect_unseen(
-                        reasoning_result=reasoning_result,
-                        local_result=local_result,
-                        community_result=community_result,
-                    )
-                else:
-                    logging.info("No reasoning result for %s; skipping unseen.", ip)
-            except Exception as exc:
-                logging.warning("Unseen detection failed for %s: %s", ip, exc)
-
-        new_type_prob = float(unseen_res.get("new_type_probability", 0.0)) if unseen_res else 0.0
-        new_vendor_prob = float(unseen_res.get("new_vendor_probability", 0.0)) if unseen_res else 0.0
-        summary["unseen"] = {
-            "new_type_probability": new_type_prob,
-            "new_vendor_probability": new_vendor_prob,
-            "is_unseen": bool(unseen_res.get("is_unseen")) if unseen_res else False,
-            "predicted_type": unseen_res.get("predicted_type", "none") if unseen_res else "none",
-            "predicted_vendor": unseen_res.get("predicted_vendor", "none") if unseen_res else "none",
-            "confidence": unseen_res.get("confidence", 0.0) if unseen_res else 0.0,
-            "available": unseen_res is not None,
-        }
-
-        # ── 2) In-class concept-drift detection (only when both probs < 0.5) ──
-        # 仅当「新类型」与「新厂商」概率都 < 0.5 时才判定 in-class concept drift
-        run_drift = (new_type_prob < 0.5) and (new_vendor_prob < 0.5)
-        summary["drift_checked"] = run_drift
-        if run_drift:
-            drift_det = self._get_drift_detector()
-            if drift_det is not None:
-                try:
-                    summary["drift"] = drift_det.detect_query_device(fingerprint)
-                except Exception as exc:
-                    logging.warning("Drift detection failed for %s: %s", ip, exc)
-                    summary["drift"] = {"error": str(exc)}
-            else:
-                summary["drift"] = {"available": False}
-
-        logging.info(
-            "First-stage %s: new_type=%.2f new_vendor=%.2f drift_checked=%s",
-            ip, new_type_prob, new_vendor_prob, run_drift,
-        )
-        return summary
+        logging.info("DecisionAgent initialised (Gemini + Claude).")
 
     # ── agent construction ────────────────────────────────────────────────────
 
     def _build_agent(self, llm: ChatOpenAI) -> AgentExecutor:
         """
-        Wrap *llm* in a LangChain AgentExecutor with the unified multi_level_retrieval tool.
+        Wrap *llm* in a LangChain AgentExecutor with the three retrieval tools.
         Uses create_openai_tools_agent which supports function-calling APIs.
         """
         prompt = ChatPromptTemplate.from_messages(
@@ -768,7 +435,7 @@ class DecisionAgent:
     ) -> Dict:
         """
         Invoke the LangChain AgentExecutor for one LLM.
-        The agent calls the unified multi_level_retrieval tool, then emits a JSON answer.
+        The agent calls all three retrieval tools, then emits a JSON answer.
         Returns a normalised classification dict.
         """
         try:
@@ -903,10 +570,6 @@ class DecisionAgent:
         if fp is None:
             return {"error": f"Fingerprint not found for ip={ip}, dev_type={dev_type}"}
 
-        # ── First-stage gate: unseen detection → (if both probs < 0.5) drift detection ──
-        # 第一阶段: 先 unseen 检测, 两概率均 < 0.5 时再做 in-class concept drift 检测
-        first_stage = self._run_first_stage(ip, fp)
-
         # Run both LangChain agents independently (each calls all 3 tools + reasons)
         gemini_result = self._run_agent(self._gemini_executor, "GEMINI", ip, fp)
         logging.info(
@@ -934,7 +597,6 @@ class DecisionAgent:
             "final_confidence":          voting["final_confidence"],
             "winning_llm":               voting["winning_llm"],
             "llm_agreement":             voting["llm_agreement"],
-            "first_stage":               first_stage,
             "gemini":                    voting["gemini"],
             "claude":                    voting["claude"],
             "elapsed_sec":               round(time.time() - t0, 2),
@@ -1043,7 +705,6 @@ class DecisionAgent:
                 "claude_device_type":    r.get("claude", {}).get("device_type"),
                 "claude_reason":         r.get("claude", {}).get("device_type_reason", ""),
                 "claude_confidence":     r.get("claude", {}).get("confidence"),
-                "first_stage":           r.get("first_stage"),
                 "elapsed_sec":           r.get("elapsed_sec"),
             }
             for r in results
@@ -1064,7 +725,6 @@ class DecisionAgent:
                 "claude_vendor":     r.get("claude", {}).get("vendor"),
                 "claude_reason":     r.get("claude", {}).get("vendor_reason", ""),
                 "claude_confidence": r.get("claude", {}).get("confidence"),
-                "first_stage":       r.get("first_stage"),
                 "elapsed_sec":       r.get("elapsed_sec"),
             }
             for r in results
@@ -1097,22 +757,9 @@ if __name__ == "__main__":
                         help="Specific IP address to classify")
     parser.add_argument("--max",  type=int, default=None,
                         help="Max samples per device type")
-    parser.add_argument("--no_first_stage", action="store_true", default=False,
-                        help="Disable unseen + drift first-stage gate (joint voting only)")
-    parser.add_argument("--unseen_adapter", type=str, default=None,
-                        help="Path to fine-tuned LLaMA LoRA adapter for unseen detection")
-    parser.add_argument("--drift_dir", type=str, default=None,
-                        help="Directory with trained PACA drift model + artifacts")
-    parser.add_argument("--gpu", type=int, default=-1,
-                        help="GPU index for the unseen LLaMA model (-1 = CPU)")
     args = parser.parse_args()
 
-    agent = DecisionAgent(
-        enable_first_stage=not args.no_first_stage,
-        unseen_adapter_path=args.unseen_adapter,
-        drift_model_dir=args.drift_dir,
-        gpu=args.gpu,
-    )
+    agent = DecisionAgent()
     result = agent.run(dev_type=args.dev, ip=args.ip, max_samples=args.max)
 
     # Pretty-print a preview
