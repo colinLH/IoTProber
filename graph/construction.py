@@ -6,13 +6,14 @@ Pipeline (executed in TRUE data-dependency order):
     Step 1 (--cluster): Per-perspective Qwen3 embedding + HDBSCAN clustering +
                         embedding_local concatenation (+ optional community report)
     Step 2 (--build):   Build Layer-1 Device–Feature entity graph to Neo4j, then
-                        EXPORT entity_graph/{node,relation}.csv (HGT inputs)
+                        EXPORT entity_graph/rag_only/{node,relation}.csv (HGT inputs)
+                        via export_entity_graph.py --mode rag_only
     Step 3 (--hgt):     HGT - learn comprehensive device embeddings on the
                         Device–Feature graph (needs entity_graph + embedding_local)
     Step 4 (--hgt):     Comprehensive-view clustering on HGT embeddings
                         (cluster.py --hgt → community/embedding_overall)
     Step 5 (--build):   Build Layer-2 / Layer-3 community graphs to Neo4j
-    Step 6 (--vector):  Store embeddings into Milvus vector DB
+    Step 6 (--vector):  Store embeddings into Milvus vector DB + local npz
 
 Why this order? HGT.py reads entity_graph/{node,relation}.csv (produced by build
 Layer-1 export) AND embedding_local/*.csv (produced by cluster). So cluster+build
@@ -75,8 +76,9 @@ class GraphConstruction:
         4. Vector:   嵌入向量存入Milvus向量数据库
     """
 
-    def __init__(self, gpu: int = 0):
+    def __init__(self, gpu: int = 0, devices: list = None):
         self.gpu = gpu
+        self.devices = devices
         self.graph_path = GRAPH_PATH
         self.base_path = BASE_PATH
 
@@ -125,13 +127,19 @@ class GraphConstruction:
             python HGT.py --gpu {gpu} --epochs {epochs}
             python cluster.py --hgt --gpu {gpu}
         """
+        cmd = [sys.executable, "HGT.py", "--gpu", str(self.gpu), "--epochs", str(epochs)]
+        if self.devices:
+            cmd.extend(["--devices"] + self.devices)
         self._run_step(
-            [sys.executable, "HGT.py", "--gpu", str(self.gpu), "--epochs", str(epochs)],
+            cmd,
             "Step: HGT 设备综合嵌入生成",
         )
         # Comprehensive-View Clustering on HGT embeddings (Fig.1 "Comprehensive View Clustering")
+        cmd2 = [sys.executable, "cluster.py", "--hgt", "--gpu", str(self.gpu)]
+        if self.devices:
+            cmd2.extend(["--devices"] + self.devices)
         self._run_step(
-            [sys.executable, "cluster.py", "--hgt", "--gpu", str(self.gpu)],
+            cmd2,
             "Step: HGT 综合视角聚类",
         )
 
@@ -151,6 +159,8 @@ class GraphConstruction:
         cmd = [sys.executable, "cluster.py",
                "--target", target,
                "--gpu", str(self.gpu)]
+        if self.devices:
+            cmd.extend(["--devices"] + self.devices)
         if overall:
             cmd.append("--overall")
         if report:
@@ -164,14 +174,22 @@ class GraphConstruction:
     def run_build_layer1_export(self):
         """
         Build Layer-1 Device–Feature entity graph to Neo4j, then export
-        entity_graph/{node,relation}.csv as HGT inputs.
+        entity_graph/rag_only/{node,relation}.csv as HGT inputs.
 
         等价于 / Equivalent to:
-            python build.py --layer1 --export
+            python build.py --layer1
+            python export_entity_graph.py --mode rag_only
         """
+        cmd = [sys.executable, "build.py", "--layer1"]
+        if self.devices:
+            cmd.extend(["--devices"] + self.devices)
         self._run_step(
-            [sys.executable, "build.py", "--layer1", "--export"],
-            "Step: 构建 Layer1 实体图 + 导出 entity_graph CSV",
+            cmd,
+            "Step: 构建 Layer1 实体图到Neo4j",
+        )
+        self._run_step(
+            [sys.executable, "export_entity_graph.py", "--mode", "rag_only"],
+            "Step: 导出 entity_graph CSV (Device+Feature, for HGT)",
         )
 
     def run_build_layer23(self):
@@ -183,8 +201,11 @@ class GraphConstruction:
         等价于 / Equivalent to:
             python build.py --layer23
         """
+        cmd = [sys.executable, "build.py", "--layer23"]
+        if self.devices:
+            cmd.extend(["--devices"] + self.devices)
         self._run_step(
-            [sys.executable, "build.py", "--layer23"],
+            cmd,
             "Step: 构建 Layer2/3 社区图到Neo4j",
         )
 
@@ -193,19 +214,21 @@ class GraphConstruction:
     def run_vector(self, drop: bool = False, batch_size: int = 5000,
                    resume: bool = False):
         """
-        Step 4: 将嵌入向量存储到Milvus向量数据库
-        Store embeddings into Milvus vector database
+        Step 4: 向量存储流水线: Milvus (单 perspective) + local npz (多 perspective 拼接)
+        Vector storage pipeline: Milvus (per-perspective) + local npz (multi-perspective concat)
 
         等价于 / Equivalent to:
             python vector.py [--drop] [--resume] --batch_size {batch_size}
         """
         cmd = [sys.executable, "vector.py",
                "--batch_size", str(batch_size)]
+        if self.devices:
+            cmd.extend(["--devices"] + self.devices)
         if drop:
             cmd.append("--drop")
         if resume:
             cmd.append("--resume")
-        self._run_step(cmd, "Step 4: 向量存储到Milvus")
+        self._run_step(cmd, "Step 4: 向量存储 (Milvus + local npz)")
 
 
 def main():
@@ -279,6 +302,10 @@ def main():
         "--batch_size", type=int, default=5000,
         help="向量插入批量大小 / Vector insert batch size (default: 5000)"
     )
+    parser.add_argument(
+        "--devices", nargs="*", default=None,
+        help="设备类型范围 / Device types to process (default: all from rag_devices.json)"
+    )
 
     args = parser.parse_args()
 
@@ -302,7 +329,7 @@ def main():
     file_handler.setFormatter(logging.Formatter('%(asctime)s [%(levelname)s] %(message)s'))
     logging.getLogger().addHandler(file_handler)
 
-    pipeline = GraphConstruction(gpu=args.gpu)
+    pipeline = GraphConstruction(gpu=args.gpu, devices=args.devices)
 
     t_total = time.time()
     steps_done = []

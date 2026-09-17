@@ -30,6 +30,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch_geometric.data import HeteroData
+from torch_geometric.loader import NeighborLoader
 from torch_geometric.nn import HGTConv, Linear
 from langchain_huggingface import HuggingFaceEmbeddings
 
@@ -43,9 +44,18 @@ ENTITY_GRAPH_PATH = os.path.join(BASE_PATH, "entity_graph")
 EMBEDDING_MODEL_PATH = os.path.join(BASE_PATH, "qwen3_embedding_06b")
 HGT_SAVE_PATH = os.path.join(LOCAL_PATH, "community", "embedding_HGT")
 RAG_DEVICES_FILE = os.path.join(BASE_PATH, "rag_devices.json")
+MODEL_SAVE_PATH = os.path.join(BASE_PATH, "graph", "model")
+# embedding_local CSV 存放在 NFS 上（本地空间不足），路径已改为 NFS
+EMBEDDING_LOCAL_PATH = "/home/nfs/embedding_local"
 
 # 11个视角名称（与embedding_local CSV列前缀一致，排除hpart/http）
 PERSPECTIVE_NAMES = ['as', 'whois', 'os', 'sw', 'hw', 'sd', 'body', 'htags', 'hfavicons', 'certificate', 'dns']
+
+# 设备数量超过此阈值的设备类型，训练改用 NeighborLoader 子图采样（避免 full-batch forward OOM）；
+# 提取最终 embedding 仍用 full-batch no_grad 推理（无 backward，显存峰值约为训练的 1/3~1/4，可装下）。
+MINIBATCH_DEVICE_THRESHOLD = 50000
+MINIBATCH_NEIGHBORS = [20, 10]   # 两层邻域采样扇出
+MINIBATCH_BATCH_SIZE = 4096      # 每批 seed device 数
 
 
 def load_rag_device_types():
@@ -54,6 +64,26 @@ def load_rag_device_types():
     with open(RAG_DEVICES_FILE, 'r') as f:
         data = json.load(f)
     return set(data.get('IoT', []))
+
+
+def _is_complete_output(path: str) -> bool:
+    """True if a device type's final embedding CSV exists and looks complete
+    (ip + 1024 hgt_emb_* columns, with at least one data row). Used by --resume
+    to decide whether a device type can be skipped."""
+    if not os.path.exists(path):
+        return False
+    try:
+        header = pd.read_csv(path, nrows=0)
+        cols = list(header.columns)
+        if len(cols) != 1025:
+            return False
+        if cols[0] != 'ip' or cols[1] != 'hgt_emb_0' or cols[-1] != 'hgt_emb_1023':
+            return False
+        first = pd.read_csv(path, usecols=[0], nrows=1)
+        return len(first) > 0
+    except Exception:
+        return False
+
 
 # ─── 日志 / Logging ──────────────────────────────────────────────────
 logging.basicConfig(
@@ -79,7 +109,7 @@ class HGTModel(torch.nn.Module):
         node_types = metadata[0]
         for _ in range(num_layers):
             conv = HGTConv(hidden_channels, hidden_channels, metadata,
-                           num_heads, group='sum')
+                           num_heads)
             self.convs.append(conv)
             # 每层对每种节点类型独立的LayerNorm
             self.norms.append(nn.ModuleDict({
@@ -111,7 +141,7 @@ class HGTModel(torch.nn.Module):
 
 
 def build_embedding_model(gpu: int):
-    device_str = str(gpu) if gpu != -1 else "cpu"
+    device_str = f'cuda:{gpu}' if gpu >= 0 else "cpu"
     model = HuggingFaceEmbeddings(
         model_name=EMBEDDING_MODEL_PATH,
         model_kwargs={"device": device_str},
@@ -132,7 +162,7 @@ def load_device_embeddings(device_nodes: pd.DataFrame, high_mem: bool = False) -
     low-mem模式使用chunked读取控制内存（cgroup限制32GB，CAMERA文件25GB）。
     high-mem模式一次性读取全量CSV（适用于H100等大内存环境）。
     """
-    embedding_local_path = os.path.join(LOCAL_PATH, "embedding_local")
+    embedding_local_path = EMBEDDING_LOCAL_PATH
     ip_to_emb = {}
 
     if 'device_type' in device_nodes.columns:
@@ -212,7 +242,7 @@ def load_device_embeddings(device_nodes: pd.DataFrame, high_mem: bool = False) -
     return torch.tensor(features, dtype=torch.float)
 
 
-def run_hgt_on_subset(gpu: int, device_types: list, num_epochs: int, node_df: pd.DataFrame, relation_df: pd.DataFrame, high_mem: bool = False):
+def run_hgt_on_subset(gpu: int, device_types: list, num_epochs: int, node_df: pd.DataFrame, relation_df: pd.DataFrame, high_mem: bool = False, ckpt_every: int = 0, resume: bool = False):
     """
     在指定GPU上对一组设备类型运行HGT训练和embedding生成。
     每个设备类型独立保存为 ipraw_{dev}_embedding_overall_raw.csv。
@@ -327,52 +357,185 @@ def run_hgt_on_subset(gpu: int, device_types: list, num_epochs: int, node_df: pd
     data = data.to(torch_device)
 
     # ── 训练 ──
-    logging.info(f"{tag} Training HGT model for {num_epochs} epochs...")
     optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
+
+    # ── 断点续训：若存在 checkpoint 则恢复 model/optimizer/epoch ──
+    # 单卡模式下一次只处理一个设备类型，故用 device_types[0] 作为 checkpoint 文件名
+    ckpt_path = os.path.join(MODEL_SAVE_PATH, f"HGT_{device_types[0]}.ckpt")
+    start_epoch = 0
+    if resume and os.path.exists(ckpt_path):
+        try:
+            ckpt = torch.load(ckpt_path, map_location=torch_device)
+            model.load_state_dict(ckpt["model_state_dict"])
+            optimizer.load_state_dict(ckpt["optimizer_state_dict"])
+            start_epoch = int(ckpt.get("epoch", 0))
+            logging.info(f"{tag} Resumed from checkpoint @ epoch {start_epoch}/{num_epochs}")
+        except Exception as e:  # noqa: BLE001
+            logging.warning(f"{tag} Checkpoint load failed ({e}); training from scratch.")
+            start_epoch = 0
+
+    num_devices = len(subset_device_nodes)
+    use_minibatch = num_devices > MINIBATCH_DEVICE_THRESHOLD
+
     model.train()
+    logging.info(f"{tag} Training HGT model for {num_epochs} epochs (start @ {start_epoch})...")
 
-    for epoch in range(num_epochs):
-        optimizer.zero_grad()
-        device_emb = model(data.x_dict, data.edge_index_dict)
+    if use_minibatch:
+        # ── 大图：NeighborLoader 子图采样训练，避免 full-batch forward OOM ──
+        logging.info(f"{tag} Large graph ({num_devices} devices > {MINIBATCH_DEVICE_THRESHOLD}); "
+                     f"using NeighborLoader mini-batch (fanout={MINIBATCH_NEIGHBORS}, "
+                     f"batch_size={MINIBATCH_BATCH_SIZE}).")
+        loader = NeighborLoader(
+            data,
+            num_neighbors=MINIBATCH_NEIGHBORS,
+            input_nodes=('device', torch.arange(num_devices, device=torch_device)),
+            batch_size=MINIBATCH_BATCH_SIZE,
+            shuffle=True,
+            num_workers=0,
+            drop_last=True,
+        )
+        for epoch in range(start_epoch, num_epochs):
+            epoch_loss, n_batches = 0.0, 0
+            for batch in loader:
+                batch = batch.to(torch_device)
+                optimizer.zero_grad()
+                device_emb = model(batch.x_dict, batch.edge_index_dict)
 
-        all_edge_tensors = [
-            data['device', rel_type, 'feature'].edge_index
-            for rel_type in edge_dict
-        ]
-        if all_edge_tensors:
-            all_edges = torch.cat(all_edge_tensors, dim=1)
-            num_samples = min(1000, all_edges.shape[1])
-            sample_idx = torch.randperm(all_edges.shape[1])[:num_samples]
-            sampled_edges = all_edges[:, sample_idx]
+                # 在采样子图内的 device→feature 边上算对比损失（与 full-batch 同一损失函数）
+                feature_proj = model.device_out(model.feature_lin(batch.x_dict['feature']))
+                d_parts, f_parts = [], []
+                for rel_type in edge_dict:
+                    key = ('device', rel_type, 'feature')
+                    ei = batch.edge_index_dict.get(key)
+                    if ei is None or ei.numel() == 0:
+                        continue
+                    d_parts.append(ei[0])
+                    f_parts.append(ei[1])
+                if d_parts:
+                    d_idx = torch.cat(d_parts)
+                    f_idx = torch.cat(f_parts)
+                    cos_sim = F.cosine_similarity(device_emb[d_idx], feature_proj[f_idx], dim=1)
+                    loss = 1 - cos_sim.mean()
+                    loss += 0.001 * (device_emb.norm(2) / device_emb.shape[0])
+                else:
+                    loss = 0.001 * (device_emb.norm(2) / device_emb.shape[0])
 
-            device_idx = sampled_edges[0]
-            feature_idx = sampled_edges[1]
+                loss.backward()
+                optimizer.step()
+                epoch_loss += loss.item()
+                n_batches += 1
 
-            device_emb_sample = device_emb[device_idx]
-            feature_emb_sample = data.x_dict['feature'][feature_idx]
-            feature_proj = model.device_out(model.feature_lin(feature_emb_sample))
+            if (epoch + 1) % 10 == 0:
+                logging.info(f"{tag} Epoch {epoch+1}/{num_epochs}, "
+                             f"Loss: {epoch_loss / max(n_batches, 1):.4f} ({n_batches} batches)")
 
-            cos_sim = F.cosine_similarity(device_emb_sample, feature_proj, dim=1)
-            loss = 1 - cos_sim.mean()
-            loss += 0.001 * (device_emb.norm(2) / device_emb.shape[0])
-        else:
-            loss = 0.001 * (device_emb.norm(2) / device_emb.shape[0])
+            if ckpt_every > 0 and (epoch + 1) % ckpt_every == 0:
+                os.makedirs(MODEL_SAVE_PATH, exist_ok=True)
+                torch.save({"epoch": epoch + 1,
+                            "model_state_dict": model.state_dict(),
+                            "optimizer_state_dict": optimizer.state_dict()},
+                           ckpt_path)
+                logging.info(f"{tag} Saved checkpoint @ epoch {epoch+1}/{num_epochs} -> {ckpt_path}")
+    else:
+        # ── 小图：保持原 full-batch 训练 ──
+        for epoch in range(start_epoch, num_epochs):
+            optimizer.zero_grad()
+            device_emb = model(data.x_dict, data.edge_index_dict)
 
-        loss.backward()
-        optimizer.step()
+            all_edge_tensors = [
+                data['device', rel_type, 'feature'].edge_index
+                for rel_type in edge_dict
+            ]
+            if all_edge_tensors:
+                all_edges = torch.cat(all_edge_tensors, dim=1)
+                num_samples = min(1000, all_edges.shape[1])
+                sample_idx = torch.randperm(all_edges.shape[1])[:num_samples]
+                sampled_edges = all_edges[:, sample_idx]
 
-        if (epoch + 1) % 10 == 0:
-            logging.info(f"{tag} Epoch {epoch+1}/{num_epochs}, Loss: {loss.item():.4f}")
+                device_idx = sampled_edges[0]
+                feature_idx = sampled_edges[1]
+
+                device_emb_sample = device_emb[device_idx]
+                feature_emb_sample = data.x_dict['feature'][feature_idx]
+                feature_proj = model.device_out(model.feature_lin(feature_emb_sample))
+
+                cos_sim = F.cosine_similarity(device_emb_sample, feature_proj, dim=1)
+                loss = 1 - cos_sim.mean()
+                loss += 0.001 * (device_emb.norm(2) / device_emb.shape[0])
+            else:
+                loss = 0.001 * (device_emb.norm(2) / device_emb.shape[0])
+
+            loss.backward()
+            optimizer.step()
+
+            if (epoch + 1) % 10 == 0:
+                logging.info(f"{tag} Epoch {epoch+1}/{num_epochs}, Loss: {loss.item():.4f}")
+
+            # ── 周期性保存 checkpoint（model + optimizer + epoch），崩了可断点续训 ──
+            if ckpt_every > 0 and (epoch + 1) % ckpt_every == 0:
+                os.makedirs(MODEL_SAVE_PATH, exist_ok=True)
+                torch.save({"epoch": epoch + 1,
+                            "model_state_dict": model.state_dict(),
+                            "optimizer_state_dict": optimizer.state_dict()},
+                           ckpt_path)
+                logging.info(f"{tag} Saved checkpoint @ epoch {epoch+1}/{num_epochs} -> {ckpt_path}")
+
+    # 训练结束，释放显存后再做 full-batch 推理
+    if gpu >= 0:
+        torch.cuda.empty_cache()
 
     # ── 生成最终embedding ──
+    #   大图(use_minibatch)：NeighborLoader 采样推理，按全局 device id 回填，
+    #                        避免 full-batch forward OOM（与训练同款 loader，fanout 一致）。
+    #                        每个 seed 恰好落在一个 batch，覆盖完整、无重无漏。
+    #   小图：full-batch no_grad；OOM 时退到 fp16 autocast。
     logging.info(f"{tag} Generating final device embeddings...")
     model.eval()
-    with torch.no_grad():
-        final_device_emb = model(data.x_dict, data.edge_index_dict)
-        final_device_emb = final_device_emb.cpu().numpy()
+    if use_minibatch:
+        infer_loader = NeighborLoader(
+            data,
+            num_neighbors=MINIBATCH_NEIGHBORS,
+            input_nodes=('device', torch.arange(num_devices, device=torch_device)),
+            batch_size=MINIBATCH_BATCH_SIZE,
+            shuffle=False,
+            num_workers=0,
+        )
+        final_device_emb = None
+        with torch.no_grad():
+            for batch in infer_loader:
+                batch = batch.to(torch_device)
+                emb = model(batch.x_dict, batch.edge_index_dict)   # (n_dev_in_subgraph, out_dim)，seed 在前
+                seed_n = int(batch['device'].batch_size)
+                if final_device_emb is None:
+                    final_device_emb = np.zeros((num_devices, emb.shape[1]), dtype=np.float32)
+                global_ids = batch['device'].n_id[:seed_n].cpu().numpy()
+                final_device_emb[global_ids] = emb[:seed_n].float().cpu().numpy()
+        logging.info(f"{tag} Minibatch inference done for {num_devices} devices "
+                     f"({len(infer_loader)} batches).")
+    else:
+        try:
+            with torch.no_grad():
+                final_device_emb = model(data.x_dict, data.edge_index_dict)
+                final_device_emb = final_device_emb.float().cpu().numpy()
+        except torch.cuda.OutOfMemoryError:
+            logging.warning(f"{tag} Full-batch fp32 inference OOM; retrying under fp16 autocast "
+                            f"(halves k/v memory).")
+            if gpu >= 0:
+                torch.cuda.empty_cache()
+            with torch.no_grad(), torch.autocast(device_type='cuda' if gpu >= 0 else 'cpu',
+                                                 dtype=torch.float16):
+                final_device_emb = model(data.x_dict, data.edge_index_dict)
+                final_device_emb = final_device_emb.float().cpu().numpy()
 
     # ── 按设备类型分别保存 ──
     os.makedirs(HGT_SAVE_PATH, exist_ok=True)
+
+    # ── 保存模型权重到 graph/model ──
+    os.makedirs(MODEL_SAVE_PATH, exist_ok=True)
+    for dev_type in device_types:
+        model_path = os.path.join(MODEL_SAVE_PATH, f"HGT_{dev_type}.pt")
+        torch.save(model.state_dict(), model_path)
+        logging.info(f"{tag} Saved model weights → {model_path}")
     embedding_cols = [f"hgt_emb_{i}" for i in range(1024)]
 
     for dev_type in device_types:
@@ -388,15 +551,23 @@ def run_hgt_on_subset(gpu: int, device_types: list, num_epochs: int, node_df: pd
         result_df.to_csv(output_path, index=False)
         logging.info(f"{tag} Saved {dev_type}: {len(result_df)} devices → {output_path}")
 
+    # ── 训练已完成并落盘，清理该类型的 checkpoint（.ckpt 存在 ⟺ 该类型被中途打断）──
+    if os.path.exists(ckpt_path):
+        try:
+            os.remove(ckpt_path)
+            logging.info(f"{tag} Removed completed checkpoint {ckpt_path}")
+        except OSError:
+            pass
+
     logging.info(f"{tag} Done. Processed {len(device_types)} device types.")
 
 
-def _worker_fn(gpu, device_types, num_epochs, subset_node_csv, subset_relation_csv, high_mem=False):
+def _worker_fn(gpu, device_types, num_epochs, subset_node_csv, subset_relation_csv, high_mem=False, ckpt_every=0, resume=False):
     """Worker process entry point for multiprocessing.
     Loads pre-filtered subset CSVs (much smaller than full entity_graph)."""
     node_df = pd.read_csv(subset_node_csv)
     relation_df = pd.read_csv(subset_relation_csv)
-    run_hgt_on_subset(gpu, device_types, num_epochs, node_df, relation_df, high_mem=high_mem)
+    run_hgt_on_subset(gpu, device_types, num_epochs, node_df, relation_df, high_mem=high_mem, ckpt_every=ckpt_every, resume=resume)
 
 
 def _prepare_subset_csvs(device_types, node_df, relation_df, tag):
@@ -436,7 +607,7 @@ def _prepare_subset_csvs(device_types, node_df, relation_df, tag):
     return node_path, rel_path
 
 
-def run_hgt(gpu: int = 1, num_epochs: int = 100, high_mem: bool = False, chunk_only: bool = False):
+def run_hgt(gpu: int = 1, num_epochs: int = 100, high_mem: bool = False, chunk_only: bool = False, ckpt_every: int = 10, resume: bool = False):
     """
     使用Heterogeneous Graph Transformer (HGT)在Device-Feature二部图上
     学习每个设备IP的最终向量表示（综合视角嵌入），最终向量维度为1024维。
@@ -462,6 +633,18 @@ def run_hgt(gpu: int = 1, num_epochs: int = 100, high_mem: bool = False, chunk_o
     device_nodes = device_nodes[device_nodes['device_type'].isin(all_device_types)]
     logging.info(f"[HGT] Device types (filtered by rag_devices.json): {all_device_types}")
 
+    # ── --resume：跳过已输出 CSV 的设备类型（避免重训已完成类型）──
+    if resume:
+        before = len(all_device_types)
+        all_device_types = [d for d in all_device_types
+                            if not _is_complete_output(os.path.join(HGT_SAVE_PATH, f"ipraw_{d}_embedding_overall_raw.csv"))]
+        if before != len(all_device_types):
+            logging.info(f"[HGT] --resume: skipped {before - len(all_device_types)} already-completed "
+                         f"device type(s); remaining: {all_device_types}")
+        if not all_device_types:
+            logging.info("[HGT] --resume: all device types already completed. Nothing to do.")
+            return
+
     # ── 按设备数量均衡分配到两个GPU ──
     dev_counts = device_nodes['device_type'].value_counts().to_dict()
     # 按数量降序排列，交替分配到两个GPU（贪心均衡）
@@ -485,7 +668,11 @@ def run_hgt(gpu: int = 1, num_epochs: int = 100, high_mem: bool = False, chunk_o
         actual_gpu = gpu if gpu >= 0 else 0
         logging.info(f"[HGT] Single-GPU mode (gpu={gpu}, high_mem={high_mem}, chunk_only={chunk_only})")
         relation_df = pd.read_csv(relation_csv)
-        run_hgt_on_subset(actual_gpu, all_device_types, num_epochs, node_df, relation_df, high_mem=high_mem)
+        # 逐设备类型顺序训练：单GPU上一次只构建一个设备类型的子图，最省显存、防止OOM
+        # 按设备数量升序（数据量小的先跑，最大的放最后），便于尽快出结果、把最耗时的大图押后
+        for dev in sorted(all_device_types, key=lambda d: dev_counts.get(d, 0)):
+            logging.info(f"[HGT] ===== Training device type: {dev} =====")
+            run_hgt_on_subset(actual_gpu, [dev], num_epochs, node_df, relation_df, high_mem=high_mem, ckpt_every=ckpt_every, resume=resume)
         return
 
     # ── 双GPU并行模式 ──
@@ -509,12 +696,12 @@ def run_hgt(gpu: int = 1, num_epochs: int = 100, high_mem: bool = False, chunk_o
         del node_df, relation_df
         gc.collect()
 
-        p0 = mp.Process(target=_worker_fn, args=(0, gpu0_devs, num_epochs, gpu0_node_csv, gpu0_rel_csv, False))
-        p1 = mp.Process(target=_worker_fn, args=(1, gpu1_devs, num_epochs, gpu1_node_csv, gpu1_rel_csv, False))
+        p0 = mp.Process(target=_worker_fn, args=(0, gpu0_devs, num_epochs, gpu0_node_csv, gpu0_rel_csv, False, ckpt_every, resume))
+        p1 = mp.Process(target=_worker_fn, args=(1, gpu1_devs, num_epochs, gpu1_node_csv, gpu1_rel_csv, False, ckpt_every, resume))
     else:
         # high_mem 或 chunk_only：worker直接加载完整entity_graph，图结构完整
-        p0 = mp.Process(target=_worker_fn, args=(0, gpu0_devs, num_epochs, node_csv, relation_csv, high_mem))
-        p1 = mp.Process(target=_worker_fn, args=(1, gpu1_devs, num_epochs, node_csv, relation_csv, high_mem))
+        p0 = mp.Process(target=_worker_fn, args=(0, gpu0_devs, num_epochs, node_csv, relation_csv, high_mem, ckpt_every, resume))
+        p1 = mp.Process(target=_worker_fn, args=(1, gpu1_devs, num_epochs, node_csv, relation_csv, high_mem, ckpt_every, resume))
 
     p0.start()
     p1.start()
@@ -541,8 +728,8 @@ def run_hgt(gpu: int = 1, num_epochs: int = 100, high_mem: bool = False, chunk_o
 def main():
     parser = argparse.ArgumentParser(description="HGT Device Embedding Generation")
     parser.add_argument(
-        "--gpu", type=int, default=1, choices=[-1, 0, 1],
-        help="GPU device number: 0 or 1 for single-GPU, 1 for dual-GPU parallel (default: 1), -1 for CPU"
+        "--gpu", type=int, default=1,
+        help="GPU device number: specific id for single-GPU (e.g. 7), 1 for dual-GPU parallel (default: 1), -1 for CPU"
     )
     parser.add_argument(
         "--epochs", type=int, default=100,
@@ -556,6 +743,15 @@ def main():
         "--chunk-only", action="store_true", default=False,
         help="Use chunked CSV reading only (no subset pre-filtering). Preserves complete graph structure."
     )
+    parser.add_argument(
+        "--resume", action="store_true", default=False,
+        help="Resume an interrupted run: skip device types whose output CSV already exists, "
+             "and continue training each remaining type from its last checkpoint (HGT_{dev}.ckpt)."
+    )
+    parser.add_argument(
+        "--ckpt-every", type=int, default=10,
+        help="Save a training checkpoint (model+optimizer+epoch) every N epochs (default 10). 0 disables."
+    )
     args = parser.parse_args()
 
     log_filename = "HGT.log"
@@ -564,7 +760,8 @@ def main():
     file_handler.setFormatter(logging.Formatter('%(asctime)s [%(levelname)s] %(message)s'))
     logging.getLogger().addHandler(file_handler)
 
-    run_hgt(gpu=args.gpu, num_epochs=args.epochs, high_mem=args.high_mem, chunk_only=args.chunk_only)
+    run_hgt(gpu=args.gpu, num_epochs=args.epochs, high_mem=args.high_mem, chunk_only=args.chunk_only,
+            ckpt_every=args.ckpt_every, resume=args.resume)
 
 
 if __name__ == "__main__":

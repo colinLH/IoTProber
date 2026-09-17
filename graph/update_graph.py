@@ -62,6 +62,7 @@ OVERALL_DIR = os.path.join(MINOR_REVISION, "embedding_overall")
 NEO4J_URL = "neo4j://localhost:7687"
 NEO4J_USER = "neo4j"
 NEO4J_PASS = "avs01046"
+NEO4J_UPDATED_URL = "neo4j://localhost:7688"
 
 PCA_COLS = [f"pca{i}" for i in range(1, 257)]
 PERSPECTIVES = [
@@ -72,7 +73,32 @@ MIN_CLUSTER_SIZE = 20
 RECLUSTER_THRESHOLD = 50          # trigger partial re-clustering after this many updates
 CONFIDENCE_THRESHOLD = 0.3        # approximate_predict membership strength below this → new cluster
 SUMMARY_LLM = "CLAUDE"            # LLM config key used for re-summarisation
-SUMMARY_LOG = os.path.join(BASE, "graph", "update_summary_log.jsonl")
+
+# All update-related output files are stored in this directory
+UPDATE_DIR = os.path.join(BASE, "graph", "update")
+os.makedirs(UPDATE_DIR, exist_ok=True)
+
+SUMMARY_LOG = os.path.join(UPDATE_DIR, "summary_log.jsonl")
+COUNTER_FILE = os.path.join(UPDATE_DIR, "update_counter.json")
+RECLUSTER_COUNT_FILE = os.path.join(UPDATE_DIR, "recluster_count.json")
+NEXT_ID_FILE = os.path.join(UPDATE_DIR, "next_cluster_ids.json")
+REPORT_FILE = os.path.join(UPDATE_DIR, "test_update_report.json")
+
+# LLM pricing (USD per 1M tokens)
+LLM_PRICING = {
+    "CLAUDE": {"input": 3.0, "output": 15.0},
+    "DEEPSEEK": {"input": 0.27, "output": 1.10},
+    "GEMINI": {"input": 0.15, "output": 0.60},
+}
+
+# Device types loaded from rag_devices.json
+def _load_all_test_devices():
+    path = os.path.join(BASE, "rag_devices.json")
+    with open(path, "r", encoding="utf-8") as f:
+        return json.load(f)["IoT"]
+
+ALL_TEST_DEVICES = _load_all_test_devices()
+DEVICES_WITH_CLUSTERERS = ["ALARM", "CONTROLLER"]
 
 
 # ─── Helpers ─────────────────────────────────────────────────────────────
@@ -94,8 +120,12 @@ def _load_cluster_info(perspective: str) -> dict:
         path = os.path.join(SINGLE_DIR, f"embedding_{perspective}", "cluster_info.json")
     if not os.path.exists(path):
         return {}
-    with open(path, "r", encoding="utf-8") as f:
-        return json.load(f)
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except json.JSONDecodeError:
+        log.warning("[cluster_info] Corrupted JSON for %s, returning empty dict", perspective)
+        return {}
 
 
 def _save_cluster_info(perspective: str, info: dict):
@@ -103,8 +133,11 @@ def _save_cluster_info(perspective: str, info: dict):
         path = os.path.join(OVERALL_DIR, "cluster_info.json")
     else:
         path = os.path.join(SINGLE_DIR, f"embedding_{perspective}", "cluster_info.json")
-    with open(path, "w", encoding="utf-8") as f:
-        json.dump(info, f, ensure_ascii=False, indent=2)
+    # Atomic write: write to temp file then rename
+    tmp_path = path + ".tmp"
+    with open(tmp_path, "w", encoding="utf-8") as f:
+        json.dump(info, f, ensure_ascii=False, indent=2, default=float)
+    os.replace(tmp_path, path)
 
 
 def _load_clusterer(perspective: str, dev: str):
@@ -139,6 +172,157 @@ def _recompute_cluster_stats(points: np.ndarray) -> dict:
         "min_10_distance": min_10,
         "node_count": len(points),
     }
+
+
+# ─── Test-update helpers ──────────────────────────────────────────────────
+
+TEST_DIR = os.path.join(BASE, "evaluation", "validation", "46_features")
+LABEL_DIR = os.path.join(BASE, "platform_data", "csv", "label")
+ALL_DIR = os.path.join(BASE, "platform_data", "csv", "all")
+RAG_DIR = os.path.join(BASE, "platform_data", "csv", "rag")
+LOCAL_FEATURES = os.path.join(BASE, "local_used_feature.txt")
+
+
+def _load_features_list():
+    with open(LOCAL_FEATURES) as f:
+        return [l.strip() for l in f if l.strip()]
+
+
+def _load_vendor_map(dev):
+    path = os.path.join(LABEL_DIR, f"label_{dev}.csv")
+    if not os.path.exists(path):
+        return {}
+    df = pd.read_csv(path, usecols=["ip", "vendor"])
+    df["ip"] = df["ip"].astype(str).str.strip()
+    df["vendor"] = df["vendor"].fillna("Unknown").astype(str).str.strip()
+    return dict(zip(df["ip"], df["vendor"]))
+
+
+def _load_rag_pca_embeddings(dev):
+    """Load per-perspective and comprehensive PCA embeddings for RAG devices."""
+    embeddings = {}
+    for persp in PERSPECTIVES:
+        path = os.path.join(SINGLE_DIR, f"embedding_{persp}", f"ipraw_{dev}_embedding_{persp}_pca.csv")
+        if os.path.exists(path):
+            df = pd.read_csv(path)
+            pca_cols = [c for c in df.columns if c.startswith("pca")]
+            embeddings[persp] = df[["ip"] + pca_cols].copy()
+    path = os.path.join(OVERALL_DIR, f"ipraw_{dev}_embedding_overall_pca.csv")
+    if os.path.exists(path):
+        df = pd.read_csv(path)
+        emb_cols = [c for c in df.columns if c not in ("ip", "cluster")]
+        embeddings["comprehensive"] = df[["ip"] + emb_cols].copy()
+    return embeddings
+
+
+def _load_rag_features(dev):
+    """Load raw features for RAG devices to compute similarity."""
+    path = os.path.join(RAG_DIR, f"ipraw_{dev}.csv")
+    if not os.path.exists(path):
+        path = os.path.join(ALL_DIR, f"ipraw_{dev}.csv")
+    if not os.path.exists(path):
+        return None
+    return pd.read_csv(path)
+
+
+def _prepare_test_devices(dev, features_list):
+    """Load test devices for a device type, with features, vendor, and embeddings."""
+    test_path = os.path.join(TEST_DIR, f"test_{dev}_1.csv")
+    if not os.path.exists(test_path):
+        log.warning(f"Test file not found: {test_path}")
+        return []
+
+    df = pd.read_csv(test_path)
+    df["ip"] = df["ip"].astype(str).str.strip()
+
+    vendor_map = _load_vendor_map(dev)
+    available_features = [f for f in features_list if f in df.columns]
+
+    devices = []
+    for _, row in df.iterrows():
+        ip = row["ip"]
+        features = {}
+        for feat in available_features:
+            val = row.get(feat, "")
+            if pd.notna(val):
+                features[feat] = str(val).strip()
+            else:
+                features[feat] = ""
+
+        devices.append({
+            "ip": ip,
+            "device_type": dev,
+            "features": features,
+            "vendor": vendor_map.get(ip, "Unknown"),
+            "embeddings": {},
+        })
+
+    return devices
+
+
+def _add_embeddings_nearest_neighbor(devices, dev, features_list):
+    """Add PCA embeddings to test devices using nearest-neighbor from RAG data."""
+    rag_embeddings = _load_rag_pca_embeddings(dev)
+    if not rag_embeddings:
+        log.warning(f"No RAG PCA embeddings for {dev}, skipping embedding assignment")
+        return
+
+    rag_features = _load_rag_features(dev)
+    if rag_features is None:
+        log.warning(f"No RAG features for {dev}, using random RAG device for embeddings")
+        for persp, emb_df in rag_embeddings.items():
+            if len(emb_df) > 0:
+                first_row = emb_df.iloc[0]
+                emb_cols = [c for c in emb_df.columns if c != "ip"]
+                emb = first_row[emb_cols].values.astype(float).tolist()
+                for d in devices:
+                    d["embeddings"][persp] = emb
+        return
+
+    rag_features["ip"] = rag_features["ip"].astype(str).str.strip()
+    rag_feature_dict = {}
+    for _, row in rag_features.iterrows():
+        rag_feature_dict[row["ip"]] = {col: str(row.get(col, "")).strip() for col in features_list if col in row.index}
+
+    persp_emb_maps = {}
+    for persp, emb_df in rag_embeddings.items():
+        emb_cols = [c for c in emb_df.columns if c != "ip"]
+        ip_to_emb = {}
+        for _, row in emb_df.iterrows():
+            ip_to_emb[row["ip"]] = row[emb_cols].values.astype(float).tolist()
+        persp_emb_maps[persp] = ip_to_emb
+
+    for d in devices:
+        test_feats = d["features"]
+        best_ip = None
+        best_score = -1
+        for rag_ip, rag_feats in rag_feature_dict.items():
+            score = sum(1 for f in features_list if f in test_feats and f in rag_feats and test_feats[f] and rag_feats[f] and test_feats[f] == rag_feats[f])
+            if score > best_score:
+                best_score = score
+                best_ip = rag_ip
+
+        if best_ip is None:
+            for persp, ip_to_emb in persp_emb_maps.items():
+                if ip_to_emb:
+                    d["embeddings"][persp] = ip_to_emb[list(ip_to_emb.keys())[0]]
+        else:
+            for persp, ip_to_emb in persp_emb_maps.items():
+                if best_ip in ip_to_emb:
+                    d["embeddings"][persp] = ip_to_emb[best_ip]
+                elif ip_to_emb:
+                    d["embeddings"][persp] = ip_to_emb[list(ip_to_emb.keys())[0]]
+
+    log.info(f"[Embedding] Assigned nearest-neighbor embeddings to {len(devices)} {dev} test devices")
+
+
+def _get_db_stats(g):
+    """Get Neo4j node/relationship counts by label."""
+    stats = {}
+    for r in g.run("MATCH (n) UNWIND labels(n) AS l RETURN l, count(*) AS c ORDER BY c DESC").data():
+        stats[r["l"]] = r["c"]
+    stats["_relationships"] = g.run("MATCH ()-[r]->() RETURN count(r) AS c").data()[0]["c"]
+    return stats
 
 
 # ─── Main class ──────────────────────────────────────────────────────────
@@ -180,11 +364,15 @@ class GraphUpdater:
         self.llm = llm if llm is not None else LLM()
 
         # Global update counter (persisted across runs)
-        self.counter_file = os.path.join(BASE, "graph", "update_counter.json")
+        self.counter_file = COUNTER_FILE
         self.update_counter = self._load_counter()
 
+        # Re-cluster event counter (persisted across runs)
+        self.recluster_count_file = RECLUSTER_COUNT_FILE
+        self.recluster_count = self._load_recluster_count()
+
         # Per-perspective next-new-cluster-ID tracker (persisted)
-        self.next_id_file = os.path.join(BASE, "graph", "next_cluster_ids.json")
+        self.next_id_file = NEXT_ID_FILE
         self.next_cluster_ids = self._load_next_ids()
 
     # ── persistence helpers ──────────────────────────────────────────
@@ -198,6 +386,16 @@ class GraphUpdater:
     def _save_counter(self):
         with open(self.counter_file, "w") as f:
             json.dump({"counter": self.update_counter}, f)
+
+    def _load_recluster_count(self) -> int:
+        if os.path.exists(self.recluster_count_file):
+            with open(self.recluster_count_file, "r") as f:
+                return json.load(f).get("recluster_count", 0)
+        return 0
+
+    def _save_recluster_count(self):
+        with open(self.recluster_count_file, "w") as f:
+            json.dump({"recluster_count": self.recluster_count}, f)
 
     def _load_next_ids(self) -> dict:
         if os.path.exists(self.next_id_file):
@@ -224,16 +422,16 @@ class GraphUpdater:
             existing = set(int(k) for k in info[dev].keys())
         # Also check Neo4j cluster_ids to avoid collisions
         neo4j_ids = self._get_all_cluster_ids(perspective)
-        existing = existing | neo4j_ids
+        existing = existing | set(int(x) for x in neo4j_ids)
         while cid in existing:
             cid += 1
         self.next_cluster_ids[key] = cid + 1
         self._save_next_ids()
-        return cid
+        return int(cid)
 
     # ── Step 1: Layer-1 entity graph insertion ───────────────────────
 
-    def _insert_device_node(self, ip: str, device_type: str, features: dict):
+    def _insert_device_node(self, ip: str, device_type: str, features: dict, vendor: str = "Unknown"):
         """
         Insert a single Device node + its Feature nodes into Neo4j Layer-1
         entity graph, mirroring build_neo4j.build_layer1 logic.
@@ -242,10 +440,10 @@ class GraphUpdater:
             log.warning("[L1] No Neo4j connection, skipping node insertion for %s", ip)
             return
 
-        # MERGE Device node
+        # MERGE Device node with vendor
         self.db.run(
-            "MERGE (d:Device {ip: $ip, device_type: $dev})",
-            ip=ip, dev=device_type,
+            "MERGE (d:Device {ip: $ip, device_type: $dev}) SET d.vendor = $vendor",
+            ip=ip, dev=device_type, vendor=vendor,
         )
 
         for feat_name, feat_value in features.items():
@@ -314,6 +512,7 @@ class GraphUpdater:
             log.error("[Summary] LLM call failed for %s/%s/cluster %d: %s",
                       perspective, dev, cluster_id, e)
             summary_text = {"error": str(e)}
+            token_usage = {"prompt_tokens": 0, "completion_tokens": 0}
 
         elapsed = time.time() - t_start
 
@@ -346,6 +545,8 @@ class GraphUpdater:
         if self.db is None:
             return
 
+        cluster_id = int(cluster_id)  # ensure Python int for Neo4j
+
         if is_new_cluster:
             # Create a new Cluster node
             self.db.run(
@@ -361,9 +562,9 @@ class GraphUpdater:
                 cid=cluster_id, persp=perspective, dev=dev,
             )
 
-        # Link device → cluster
+        # Link device → cluster (match by ip AND device_type to avoid cross-type linking)
         self.db.run(
-            "MATCH (d:Device {ip: $ip}) "
+            "MATCH (d:Device {ip: $ip, device_type: $dev}) "
             "MATCH (c:Cluster {cluster_id: $cid, perspective: $persp, device_type: $dev}) "
             "MERGE (d)-[:IN_COMMUNITY {perspective: $persp}]->(c)",
             ip=ip, cid=cluster_id, persp=perspective, dev=dev,
@@ -381,6 +582,7 @@ class GraphUpdater:
             return
 
         label, prob = self._predict_cluster(clusterer, embedding)
+        label = int(label)  # convert numpy.int64 → Python int for Neo4j compatibility
         cluster_info = _load_cluster_info(perspective)
         dev_info = cluster_info.get(dev, {})
 
@@ -717,9 +919,10 @@ class GraphUpdater:
             # Assign new cluster IDs starting from next_id, avoiding collisions
             new_id_map = {}  # new hdbscan label → new cluster_id
             for hl in sorted(set(new_labels)):
+                hl = int(hl)
                 if hl == -1:
                     continue
-                new_id_map[hl] = next_id
+                new_id_map[hl] = int(next_id)
                 next_id += 1
 
             # Update the CSV with new cluster labels
@@ -780,6 +983,7 @@ class GraphUpdater:
             if self.db is not None:
                 # Delete old IN_COMMUNITY edges and Cluster nodes for the subset
                 for cid in cid_set:
+                    cid = int(cid)
                     self.db.run(
                         "MATCH (d:Device)-[r:IN_COMMUNITY]->(c:Cluster "
                         "{cluster_id: $cid, perspective: $persp, device_type: $dev}) "
@@ -797,7 +1001,7 @@ class GraphUpdater:
                     self.db.run(
                         "MERGE (c:Cluster {cluster_id: $cid, perspective: $persp, device_type: $dev}) "
                         "SET c.hdbscan_label = $hl, c.is_outlier = false, c.updated = true",
-                        cid=cid, persp=perspective, dev=dev, hl=hl,
+                        cid=int(cid), persp=perspective, dev=dev, hl=int(hl),
                     )
                     member_ips = sub_df[new_labels == hl]["ip"].astype(str).tolist()
                     for mip in member_ips:
@@ -813,13 +1017,13 @@ class GraphUpdater:
                     self.db.run(
                         "MERGE (c:Cluster {cluster_id: $cid, perspective: $persp, device_type: $dev}) "
                         "SET c.hdbscan_label = -1, c.is_outlier = true, c.updated = true",
-                        cid=cid, persp=perspective, dev=dev,
+                        cid=int(cid), persp=perspective, dev=dev,
                     )
                     self.db.run(
                         "MATCH (d:Device {ip: $ip}) "
                         "MATCH (c:Cluster {cluster_id: $cid, perspective: $persp, device_type: $dev}) "
                         "MERGE (d)-[:IN_COMMUNITY {perspective: $persp}]->(c)",
-                        ip=noise_ip, cid=cid, persp=perspective, dev=dev,
+                        ip=noise_ip, cid=int(cid), persp=perspective, dev=dev,
                     )
 
             log.info("[Recluster] %s/%s: %d new clusters + %d noise singletons, IDs %s",
@@ -845,7 +1049,11 @@ class GraphUpdater:
         # Reset counter
         self.update_counter = 0
         self._save_counter()
-        log.info("[Recluster] Counter reset to 0")
+
+        # Increment re-cluster event counter
+        self.recluster_count += 1
+        self._save_recluster_count()
+        log.info("[Recluster] Counter reset to 0, total re-cluster events: %d", self.recluster_count)
 
     # ── Public API ───────────────────────────────────────────────────
 
@@ -869,7 +1077,8 @@ class GraphUpdater:
             log.info("=== Updating device %s (%s) ===", ip, dev_type)
 
             # Step 1: Insert into Layer-1 entity graph
-            self._insert_device_node(ip, dev_type, features)
+            vendor = dev_info.get("vendor", "Unknown")
+            self._insert_device_node(ip, dev_type, features, vendor)
 
             # Step 2: Update each single-perspective cluster
             for perspective in self.perspective_names:
@@ -896,40 +1105,271 @@ class GraphUpdater:
 
         log.info("Batch update complete. Counter: %d/%d", self.update_counter, RECLUSTER_THRESHOLD)
 
+    # ── Test-update entry point ─────────────────────────────────────
+
+    def run_test_update(self, devices=None, neo4j_url=NEO4J_UPDATED_URL,
+                        neo4j_user="neo4j", neo4j_pass="avs01046"):
+        """
+        Run graph update for test set devices on neo4j_updated (port 7688).
+        Collects metrics: update frequency, Layer-1 time, cluster summary time + LLM cost,
+        re-clustering events, total update time.
+
+        For ALARM/CONTROLLER (which have saved HDBSCAN clusterers),
+          use nearest-neighbor PCA embeddings from RAG data.
+        For other device types, no clusterers exist so only Layer-1 is updated.
+
+        All results are saved to graph/update/.
+
+        :param devices: list of device types to run (default: all 11)
+        :param neo4j_url: Neo4j connection URL
+        :param neo4j_user: Neo4j username
+        :param neo4j_pass: Neo4j password
+        """
+        from py2neo import Graph as Py2neoGraph
+
+        if devices is None:
+            devices = ALL_TEST_DEVICES
+
+        log.info("=" * 70)
+        log.info("Graph Update for Test Set Devices on neo4j_updated")
+        log.info("=" * 70)
+
+        features_list = _load_features_list()
+        log.info(f"Features: {len(features_list)}")
+
+        # Connect to neo4j_updated
+        g_updated = Py2neoGraph(neo4j_url, auth=(neo4j_user, neo4j_pass))
+        before_stats = _get_db_stats(g_updated)
+        log.info(f"BEFORE: {before_stats}")
+
+        # Reuse the existing db connection if it points to the same URL,
+        # otherwise create a new updater with the target DB
+        self.db = g_updated
+
+        # Clear all state files
+        for f in [COUNTER_FILE, NEXT_ID_FILE, RECLUSTER_COUNT_FILE, SUMMARY_LOG]:
+            if os.path.exists(f):
+                os.remove(f)
+        self.update_counter = 0
+        self.recluster_count = 0
+        self.next_cluster_ids = {}
+
+        # Metrics collection
+        metrics = {}
+        total_t0 = time.time()
+
+        for dev in devices:
+            log.info(f"\n{'='*60}")
+            log.info(f"Processing {dev}")
+            log.info(f"{'='*60}")
+
+            t_dev_start = time.time()
+            recluster_before = self.recluster_count
+
+            # Prepare test devices
+            test_devices = _prepare_test_devices(dev, features_list)
+            if not test_devices:
+                log.warning(f"No test devices for {dev}")
+                continue
+
+            n_devices = len(test_devices)
+            log.info(f"[{dev}] {n_devices} test devices to update")
+
+            # Add embeddings for devices with clusterers
+            if dev in DEVICES_WITH_CLUSTERERS:
+                t_emb_start = time.time()
+                _add_embeddings_nearest_neighbor(test_devices, dev, features_list)
+                t_emb = time.time() - t_emb_start
+                log.info(f"[{dev}] Embedding preparation: {t_emb:.1f}s")
+            else:
+                t_emb = 0
+                log.info(f"[{dev}] No clusterers available, only Layer-1 update")
+
+            # Run update
+            t_update_start = time.time()
+
+            BATCH_SIZE = 500
+            n_summaries_before = 0
+            if os.path.exists(SUMMARY_LOG):
+                with open(SUMMARY_LOG) as f:
+                    n_summaries_before = sum(1 for _ in f)
+
+            for i in range(0, n_devices, BATCH_SIZE):
+                batch = test_devices[i:i + BATCH_SIZE]
+                self.update_devices(batch)
+                log.info(f"[{dev}] Progress: {min(i + BATCH_SIZE, n_devices)}/{n_devices}")
+
+            t_update = time.time() - t_update_start
+            t_dev_total = time.time() - t_dev_start
+
+            # Count summaries for this device
+            n_summaries_after = 0
+            if os.path.exists(SUMMARY_LOG):
+                with open(SUMMARY_LOG) as f:
+                    n_summaries_after = sum(1 for _ in f)
+            n_summaries = n_summaries_after - n_summaries_before
+
+            # Count re-clustering events triggered during this device's update
+            n_reclusters = self.recluster_count - recluster_before
+
+            metrics[dev] = {
+                "n_devices": n_devices,
+                "n_updates": n_devices,
+                "n_summaries": n_summaries,
+                "n_reclusters": n_reclusters,
+                "embedding_time_s": t_emb,
+                "update_time_s": t_update,
+                "total_time_s": t_dev_total,
+            }
+
+            log.info(f"[{dev}] Done: {n_devices} devices, {n_summaries} summaries, {n_reclusters} reclusters, {t_dev_total:.1f}s")
+
+        total_time = time.time() - total_t0
+
+        # Collect LLM token usage from summary log
+        llm_stats = {}
+        total_tokens_in = 0
+        total_tokens_out = 0
+        total_cost = 0.0
+
+        if os.path.exists(SUMMARY_LOG):
+            with open(SUMMARY_LOG) as f:
+                for line in f:
+                    entry = json.loads(line)
+                    dev = entry.get("device_type", "unknown")
+                    usage = entry.get("token_usage", {})
+                    tokens_in = usage.get("prompt_tokens", 0)
+                    tokens_out = usage.get("completion_tokens", 0)
+
+                    pricing = LLM_PRICING.get(SUMMARY_LLM, {"input": 0, "output": 0})
+                    cost = (tokens_in / 1_000_000 * pricing["input"]) + (tokens_out / 1_000_000 * pricing["output"])
+
+                    if dev not in llm_stats:
+                        llm_stats[dev] = {"calls": 0, "tokens_in": 0, "tokens_out": 0, "cost_usd": 0.0}
+                    llm_stats[dev]["calls"] += 1
+                    llm_stats[dev]["tokens_in"] += tokens_in
+                    llm_stats[dev]["tokens_out"] += tokens_out
+                    llm_stats[dev]["cost_usd"] += cost
+
+                    total_tokens_in += tokens_in
+                    total_tokens_out += tokens_out
+                    total_cost += cost
+
+        # Total re-clustering events across all devices
+        recluster_count = self.recluster_count
+
+        # Get AFTER stats
+        after_stats = _get_db_stats(g_updated)
+
+        # ─── Print Results ─────────────────────────────────────────────────
+        print(f"\n{'='*80}")
+        print("Graph Update Results — Test Set on neo4j_updated")
+        print(f"{'='*80}\n")
+
+        # Table 1: Timing
+        print("─" * 90)
+        print("Table 1: Timing Statistics (seconds)")
+        print("─" * 90)
+        print(f"{'Device':<25} {'Devices':>8} {'Updates':>8} {'Summaries':>10} {'Reclusters':>11} {'Emb(s)':>8} {'Update(s)':>10} {'Total(s)':>10}")
+        for dev in devices:
+            m = metrics.get(dev, {})
+            print(f"{dev:<25} {m.get('n_devices', 0):>8} {m.get('n_updates', 0):>8} "
+                  f"{m.get('n_summaries', 0):>10} {m.get('n_reclusters', 0):>11} "
+                  f"{m.get('embedding_time_s', 0):>8.1f} {m.get('update_time_s', 0):>10.1f} "
+                  f"{m.get('total_time_s', 0):>10.1f}")
+        print(f"{'─'*90}")
+        total_devices = sum(m.get("n_devices", 0) for m in metrics.values())
+        total_updates = sum(m.get("n_updates", 0) for m in metrics.values())
+        total_summaries = sum(m.get("n_summaries", 0) for m in metrics.values())
+        total_emb = sum(m.get("embedding_time_s", 0) for m in metrics.values())
+        total_update = sum(m.get("update_time_s", 0) for m in metrics.values())
+        print(f"{'TOTAL':<25} {total_devices:>8} {total_updates:>8} {total_summaries:>10} {recluster_count:>11} "
+              f"{total_emb:>8.1f} {total_update:>10.1f} {total_time:>10.1f}")
+
+        # Table 2: LLM Cost
+        print(f"\n{'─'*80}")
+        print(f"Table 2: LLM API Token & Cost (LLM={SUMMARY_LLM})")
+        print("─" * 80)
+        print(f"{'Device':<25} {'Calls':>8} {'Tokens In':>12} {'Tokens Out':>12} {'Total Tok':>12} {'Cost(USD)':>12}")
+        for dev in devices:
+            s = llm_stats.get(dev, {"calls": 0, "tokens_in": 0, "tokens_out": 0, "cost_usd": 0.0})
+            total_tok = s["tokens_in"] + s["tokens_out"]
+            print(f"{dev:<25} {s['calls']:>8} {s['tokens_in']:>12} {s['tokens_out']:>12} {total_tok:>12} {s['cost_usd']:>12.4f}")
+        print(f"{'─'*80}")
+        total_calls = sum(s["calls"] for s in llm_stats.values())
+        total_tok_all = total_tokens_in + total_tokens_out
+        print(f"{'TOTAL':<25} {total_calls:>8} {total_tokens_in:>12} {total_tokens_out:>12} {total_tok_all:>12} {total_cost:>12.4f}")
+
+        # Table 3: Neo4j Database Changes
+        print(f"\n{'─'*80}")
+        print("Table 3: Neo4j Database Changes (neo4j_updated)")
+        print("─" * 80)
+        print(f"{'Label':<16} {'Before':>14} {'After':>14} {'Delta':>14}")
+        all_labels = sorted(set(list(before_stats.keys()) + list(after_stats.keys())))
+        for label in all_labels:
+            if label.startswith("_"):
+                continue
+            b = before_stats.get(label, 0)
+            a = after_stats.get(label, 0)
+            d = a - b
+            print(f"{label:<16} {b:>14,} {a:>14,} {d:>+14,}")
+        b_rel = before_stats.get("_relationships", 0)
+        a_rel = after_stats.get("_relationships", 0)
+        print(f"{'Relationships':<16} {b_rel:>14,} {a_rel:>14,} {a_rel - b_rel:>+14,}")
+
+        # Table 4: Layer-1 vs Cluster Update breakdown (only for devices with clusterers)
+        clusterer_devs = [d for d in devices if d in DEVICES_WITH_CLUSTERERS]
+        if clusterer_devs:
+            print(f"\n{'─'*80}")
+            print("Table 4: Layer-1 Insertion vs Cluster Update Time (clusterer devices only)")
+            print("─" * 80)
+            print(f"{'Device':<25} {'L1+Cluster(s)':>14} {'Summary(s)':>12} {'Emb Prep(s)':>12} {'Total(s)':>10}")
+            for dev in clusterer_devs:
+                m = metrics.get(dev, {})
+                summary_time = 0.0
+                if os.path.exists(SUMMARY_LOG):
+                    with open(SUMMARY_LOG) as f:
+                        for line in f:
+                            entry = json.loads(line)
+                            if entry.get("device_type") == dev:
+                                summary_time += entry.get("elapsed_seconds", 0)
+                print(f"{dev:<25} {m.get('update_time_s', 0):>14.1f} {summary_time:>12.1f} "
+                      f"{m.get('embedding_time_s', 0):>12.1f} {m.get('total_time_s', 0):>10.1f}")
+
+        # Save report
+        report = {
+            "timing": {dev: metrics.get(dev, {}) for dev in devices},
+            "llm_cost": {dev: llm_stats.get(dev, {}) for dev in devices},
+            "llm_total": {"calls": total_calls, "tokens_in": total_tokens_in, "tokens_out": total_tokens_out, "cost_usd": total_cost},
+            "neo4j_before": before_stats,
+            "neo4j_after": after_stats,
+            "total_time_s": total_time,
+            "recluster_count": recluster_count,
+        }
+        with open(REPORT_FILE, "w") as f:
+            json.dump(report, f, indent=2, ensure_ascii=False)
+        print(f"\nReport saved to: {REPORT_FILE}")
+
 
 if __name__ == "__main__":
     import argparse
 
     parser = argparse.ArgumentParser(description="Incremental graph update")
+    parser.add_argument("--devices", type=str, default="all",
+                        help="Comma-separated list of device types to update, or 'all' (default: all)")
     parser.add_argument("--dry-run", action="store_true",
                         help="Show what would be updated without modifying Neo4j")
     args = parser.parse_args()
 
-    updater = GraphUpdater()
+    if args.devices.strip().lower() == "all":
+        dev_list = None
+    else:
+        dev_list = [d.strip() for d in args.devices.split(",") if d.strip()]
 
-    # Example usage with a single test device
-    # In practice, embeddings would be pre-computed from the embedding model
-    example_devices = [
-        {
-            "ip": "192.168.1.100",
-            "device_type": "ALARM",
-            "features": {
-                "as-asn": "12345",
-                "as-name": "TEST-AS",
-                "os-vendor": "Linux",
-            },
-            "embeddings": {
-                # Each perspective's 256-dim PCA embedding
-                "as": [0.0] * 256,
-                "os": [0.0] * 256,
-                # ... other perspectives ...
-                "comprehensive": [0.0] * 3328,
-            },
-        },
-    ]
+    updater = GraphUpdater()
 
     if args.dry_run:
         log.info("Dry run mode – no Neo4j modifications")
         updater.db = None
 
-    updater.update_devices(example_devices)
+    updater.run_test_update(devices=dev_list)
