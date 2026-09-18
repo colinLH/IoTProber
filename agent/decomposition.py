@@ -159,9 +159,9 @@ class DecompositionAgent:
             if langchain_version != "1.2":
                 # 使用Langchain Agent v0.3.27 进行问题分解
             
-                from langchain.agents import initialize_agent, AgentType
-                from langchain.output_parsers import StructuredOutputParser, ResponseSchema
-                from langchain.prompts import ChatPromptTemplate
+                from langchain_classic.agents import initialize_agent, AgentType
+                from langchain_classic.output_parsers import StructuredOutputParser, ResponseSchema
+                from langchain_core.prompts import ChatPromptTemplate
 
                 # Step 1: 构建LLM提示
                 prompt = """

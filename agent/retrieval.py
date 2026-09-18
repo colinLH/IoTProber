@@ -686,7 +686,7 @@ class MultiLevelRetrieval:
             logging.warning(f"Directory not found: {local_dir}")
 
         logging.info(f"All done. Total rows inserted: {total_rows}")
-        logging.info(f"Vector DB saved to: {VECTOR_DB_DIR}")   
+        logging.info(f"Vector DB saved to: {self.vector_db_path}")
 
     def _get_graph_db(self):
         """
