@@ -64,7 +64,7 @@ uv venv --python 3.10 --seed .venv-iotprober
 uv pip install -r requirements.txt   # or: .venv-iotprober/bin/pip install -r requirements.txt
 ```
 
-> **LangChain is pinned to the 1.x line** (`requirements.txt`: `langchain==1.1.0`, `langgraph==1.0.4`). The control-plane decision workflow (`agent/agent.py::IoTDecisionGraph`) is built on `langgraph.graph.StateGraph`; the legacy `AgentExecutor` / `create_openai_tools_agent` API still used by `agent/decision.py::DecisionAgent` is restored via the `langchain-classic==1.0.0` compatibility package, which must be installed alongside `langchain` 1.x.
+> **LangChain is pinned to the 1.x line** (`requirements.txt`: `langchain==1.1.0`, `langgraph==1.2.11` (>=1.1: `add_node(defer=)` and `langchain.agents` require `langgraph.runtime.ExecutionInfo`, absent in 1.0.4)). The control-plane decision workflow (`agent/agent.py::IoTDecisionGraph`) is built on `langgraph.graph.StateGraph`; the legacy `AgentExecutor` / `create_openai_tools_agent` API still used by `agent/decision.py::DecisionAgent` is restored via the `langchain-classic==1.0.0` compatibility package, which must be installed alongside `langchain` 1.x.
 
 > **GPU-only extras** (`bitsandbytes`, `torch-geometric`, RAPIDS `cuml`) are listed
 > but commented out in `requirements.txt` because they cannot be pip-installed on

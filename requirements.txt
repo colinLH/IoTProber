@@ -44,7 +44,7 @@ langchain-deepseek==1.0.1
 langchain-google-genai==3.2.0
 langchain-openai==1.1.0
 langchain-huggingface==1.1.0
-langgraph==1.0.4
+langgraph==1.2.11  # >=1.1 required: add_node(defer=) + langchain 1.x agents module (langgraph.runtime.ExecutionInfo)
 
 # ── LLM SDKs ──────────────────────────────────────────────────────────────────
 anthropic==0.86.0
