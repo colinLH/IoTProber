@@ -2320,6 +2320,182 @@ class MultiLevelRetrieval:
 
         return local_result, community_result, reasoning_result
 
-    
+
+# ═════════════════════════════════════════════════════════════════════════════
+# 单查询入口 / Single-query entry point (供 agent/app.py /api/retrieve 调用)
+# ═════════════════════════════════════════════════════════════════════════════
+
+def _lookup_cached_retrieval(ip) -> Optional[Dict[str, Any]]:
+    """
+    在 query_db/{local,community,reasoning}/ 下扫描所有设备的结果文件,
+    返回该IP已有的三级检索结果 (缺失的层级为None), 全部缺失则返回None
+    Scan categorized query_db result files for cached results of this IP.
+    """
+    if ip is None:
+        return None
+    ip = str(ip)
+    qdb_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "query_db")
+    cached: Dict[str, Any] = {
+        "local_result": None,
+        "community_result": None,
+        "reasoning_result": None,
+    }
+    for rtype, key in (("local", "local_result"),
+                       ("community", "community_result"),
+                       ("reasoning", "reasoning_result")):
+        sub_dir = os.path.join(qdb_path, rtype)
+        if not os.path.isdir(sub_dir):
+            continue
+        for fname in sorted(os.listdir(sub_dir)):
+            if not fname.endswith(".json"):
+                continue
+            try:
+                with open(os.path.join(sub_dir, fname), "r", encoding="utf-8") as fh:
+                    records = json.load(fh)
+            except (json.JSONDecodeError, ValueError, OSError):
+                continue
+            for rec in records if isinstance(records, list) else []:
+                fp = rec.get("query_fingerprint", {}) if isinstance(rec, dict) else {}
+                if isinstance(fp, dict) and str(fp.get("ip", "")) == ip:
+                    cached[key] = rec
+                    break
+            if cached[key] is not None:
+                break
+    if all(v is None for v in cached.values()):
+        return None
+    return cached
+
+
+_shared_retrieval_agent: Optional[MultiLevelRetrieval] = None
+
+
+def _get_shared_retrieval_agent(llm: str = "deepseek", gpu: int = -1) -> MultiLevelRetrieval:
+    """
+    懒加载共享的 MultiLevelRetrieval 实例
+    (Flask 服务复用同一实例, 避免每次请求重新初始化embedding模型)
+    Lazily create a shared MultiLevelRetrieval instance, reused across API requests.
+    """
+    global _shared_retrieval_agent
+    if _shared_retrieval_agent is None:
+        _shared_retrieval_agent = MultiLevelRetrieval(llm=llm, gpu=gpu)
+    return _shared_retrieval_agent
+
+
+def main(test_queries, query_fingerprint: Optional[Dict[str, Any]] = None, top_k: int = 5,
+         whether_local: bool = True, whether_community: bool = True, whether_reasoning: bool = True,
+         llm: str = "deepseek", gpu: int = -1, use_cache: bool = True) -> Dict[str, Any]:
+    """
+    单查询检索入口: 问题分解 + 多级检索 (供 agent/app.py /api/retrieve 调用)
+    Single-query entry point: query decomposition + multi-level retrieval.
+
+    流程 / Pipeline:
+        1. 问题分解 (失败则使用默认问题类型 DEVICE_TYPE / DEVICE_VENDOR)
+           Query decomposition (fall back to default problems on failure)
+        2. 按IP查询 query_db 缓存, 已有完整结果的层级直接复用
+           Look up cached results by IP in query_db; reuse completed levels
+        3. 对缺失的层级执行增量检索 (community/reasoning 级联依赖 local/community)
+           Run incremental retrieval only for missing levels
+
+    Args:
+        test_queries: 查询文本或查询列表 / Query string or list of query strings
+        query_fingerprint: 待检索的设备指纹(建议含ip) / Query device fingerprint (ip recommended)
+        top_k: 局部检索返回数量 / Number of local retrieval results
+        whether_local / whether_community / whether_reasoning: 启用的检索层级 / Enabled levels
+        llm: LLM类型 / LLM type ("gemini", "deepseek", "openai")
+        gpu: GPU编号, -1为CPU / GPU index, -1 for CPU
+        use_cache: 是否优先使用query_db缓存 / Whether to prefer cached results
+
+    Returns:
+        {
+            "decomposition_result": {...} or None,
+            "retrieval_result": {
+                "local_result": ..., "community_result": ..., "reasoning_result": ...
+            },
+            "from_cache": bool  # 三级结果是否全部来自缓存 / all levels served from cache
+        }
+    """
+    queries = [test_queries] if isinstance(test_queries, str) else list(test_queries or [])
+
+    # ── Step 1: 问题分解 / Query decomposition ──
+    decomposition_result = None
+    problems = ["DEVICE_TYPE", "DEVICE_VENDOR"]
+    if queries:
+        try:
+            from decomposition import main as decomposition_main
+            decomposition_result = decomposition_main(queries)
+            # 分解失败时可能返回空 identified_problems (LLM错误), 此时回退默认问题类型
+            # A failed decomposition may return an empty list; fall back to defaults
+            identified = decomposition_result.get("identified_problems")
+            if identified:
+                problems = identified
+        except Exception as e:
+            print(f"问题分解失败, 使用默认问题类型: {e}")
+            logging.warning(f"问题分解失败, 使用默认问题类型: {e}")
+
+    result = {
+        "decomposition_result": decomposition_result,
+        "retrieval_result": {
+            "local_result": None,
+            "community_result": None,
+            "reasoning_result": None,
+        },
+        "from_cache": False,
+    }
+
+    if "DEVICE_TYPE" not in problems:
+        print(f"未检测到DEVICE_TYPE问题, 跳过检索: {problems}")
+        logging.info(f"未检测到DEVICE_TYPE问题, 跳过检索: {problems}")
+        return result
+
+    if not isinstance(query_fingerprint, dict) or not query_fingerprint:
+        print("未提供查询指纹, 仅完成问题分解")
+        logging.info("未提供查询指纹, 仅完成问题分解")
+        return result
+
+    # ── Step 2: 缓存查询 / Cache lookup by IP ──
+    ip = query_fingerprint.get("ip")
+    cached = _lookup_cached_retrieval(ip) if (use_cache and ip) else None
+    local_result = cached["local_result"] if cached else None
+    community_result = cached["community_result"] if cached else None
+    reasoning_result = cached["reasoning_result"] if cached else None
+
+    need_local = whether_local and local_result is None
+    need_community = whether_community and community_result is None
+    need_reasoning = whether_reasoning and reasoning_result is None
+
+    result["from_cache"] = not (need_local or need_community or need_reasoning)
+    if result["from_cache"]:
+        print(f"IP {ip} 已有完整检索结果, 直接返回缓存")
+        logging.info(f"IP {ip} 已有完整检索结果, 直接返回缓存")
+        result["retrieval_result"] = {
+            "local_result": local_result,
+            "community_result": community_result,
+            "reasoning_result": reasoning_result,
+        }
+        return result
+
+    # ── Step 3: 增量检索, 只跑缺失的层级 / Incremental retrieval for missing levels ──
+    retrieval_agent = _get_shared_retrieval_agent(llm=llm, gpu=gpu)
+    local_result, community_result, reasoning_result = retrieval_agent.run_retrieval_algorithm(
+        test_fingerprint=query_fingerprint,
+        top_k=top_k,
+        whether_local=need_local,
+        whether_community=need_community or (need_reasoning and community_result is None),
+        whether_reasoning=need_reasoning,
+        local_result=local_result,
+        community_result=community_result,
+        llm_type=llm,
+        device_name="UNKNOWN",
+    )
+    retrieval_agent.clear_history()
+
+    result["retrieval_result"] = {
+        "local_result": local_result,
+        "community_result": community_result,
+        "reasoning_result": reasoning_result,
+    }
+    return result
+
+
 if __name__ == "__main__":
     pass
