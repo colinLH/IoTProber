@@ -63,8 +63,13 @@ class DecompositionAgent:
         """
         print("=== 初始化LLM ===")
 
-        os.environ["HTTP_PROXY"] = "http://127.0.0.1:7890"
-        os.environ["HTTPS_PROXY"] = "http://127.0.0.1:7890"
+        # Optional outbound proxy — only set it when the caller configured one
+        # (a hardcoded 127.0.0.1:7890 breaks every LLM call on hosts without
+        # that local proxy, e.g. this server).
+        _proxy = os.environ.get("IOTPROBER_HTTP_PROXY")
+        if _proxy:
+            os.environ["HTTP_PROXY"] = _proxy
+            os.environ["HTTPS_PROXY"] = _proxy
 
         if llm == "gemini":
             print("Loading Gemini 3 pro Model...")
