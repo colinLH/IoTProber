@@ -2,15 +2,25 @@
 # IoTProber — Minimal verified environment (agent control plane)
 #
 # Verified on: Python 3.11, Linux + CUDA (H800), elastic_slm environment.
-# Scope: agent pipeline — query decomposition, multi-level retrieval,
-# LangGraph decision (unseen + drift + Gemini/Claude ReAct branches),
-# Flask REST API (agent/app.py).
+# Scope: agent control plane (decomposition, multi-level retrieval, LangGraph
+# decision, Flask REST API) + graph-construction pipeline (graph/).
 #
 # NOT included (install separately if needed):
 #   - torch / CUDA wheels — install BEFORE this file:
 #       pip install torch==2.9.1 --index-url https://download.pytorch.org/whl/cu128
-#   - graph-construction extras (torch-geometric, hdbscan, networkx, matplotlib)
+#   - RAPIDS cuml (graph/cluster_cuml.py GPU variant)
 #   - unseen-detector training extras (datasets, trl, bitsandbytes)
+#
+# External services:
+#   - Neo4j 4.4 (community) — hierarchical community graph storage, required by
+#     graph/* and the graph_neighbor feature of agent/retrieval.py (lazy,
+#     fail-safe). Run on neo4j://localhost:7687, auth neo4j/avs01046. On JDK 17
+#     add dbms.jvm.additional=--add-opens=java.base/java.nio=ALL-UNNAMED (plus
+#     sun.nio.ch / java.lang / java.util / java.lang.reflect) to conf/neo4j.conf.
+#     graph/update_graph.py::run_test_update optionally uses a second instance
+#     on port 7688 (neo4j_updated).
+#   - Milvus — NO server needed: all code paths use embedded Milvus Lite
+#     (local milvus.db files under platform_data/.../vectorDB/).
 #
 # NOTE on langgraph: langchain==1.1.0 declares langgraph<1.1.0, but the
 # decision graph requires langgraph>=1.1 (add_node(defer=) and
@@ -57,8 +67,14 @@ transformers==4.57.6
 peft==0.19.1
 accelerate==1.13.0
 
+# ── Graph-construction pipeline (graph/) ──────────────────────────────────────
+hdbscan==0.8.40
+geopy==2.4.1
+torch-geometric==2.7.0
+
 # ── Vector / graph DB clients ─────────────────────────────────────────────────
 pymilvus==2.5.18
+milvus-lite==3.2.1
 py2neo==2021.2.4
 
 # ── Misc ───────────────────────────────────────────────────────────────────────

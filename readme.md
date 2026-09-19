@@ -57,19 +57,42 @@ named `iotprober` to keep it separate from `base`.
 # Option A — conda
 conda create -n iotprober python=3.10
 conda activate iotprober
-pip install -r requirements.txt
+grep -v '^langgraph' requirements.txt | grep -v '^#' | pip install -r /dev/stdin
+pip install langgraph==1.2.11
 
 # Option B — venv / uv (isolated, no conda needed)
 uv venv --python 3.10 --seed .venv-iotprober
-uv pip install -r requirements.txt   # or: .venv-iotprober/bin/pip install -r requirements.txt
+grep -v '^langgraph' requirements.txt | grep -v '^#' | .venv-iotprober/bin/pip install -r /dev/stdin
+.venv-iotprober/bin/pip install langgraph==1.2.11
 ```
 
 > **LangChain is pinned to the 1.x line** (`requirements.txt`: `langchain==1.1.0`, `langgraph==1.2.11` (>=1.1: `add_node(defer=)` and `langchain.agents` require `langgraph.runtime.ExecutionInfo`, absent in 1.0.4)). The control-plane decision workflow (`agent/agent.py::IoTDecisionGraph`) is built on `langgraph.graph.StateGraph`; the legacy `AgentExecutor` / `create_openai_tools_agent` API still used by `agent/decision.py::DecisionAgent` is restored via the `langchain-classic==1.0.0` compatibility package, which must be installed alongside `langchain` 1.x.
 
-> **GPU-only extras** (`bitsandbytes`, `torch-geometric`, RAPIDS `cuml`) are listed
-> but commented out in `requirements.txt` because they cannot be pip-installed on
-> macOS/arm64. Enable them on a CUDA Linux host. Without `bitsandbytes`, run the
-> unseen LLaMA detector in full/half precision (`load_in_4bit=False`).
+> **GPU-only extras** (`bitsandbytes`, RAPIDS `cuml`) are intentionally excluded from
+> `requirements.txt` — enable them on a CUDA Linux host as needed. Without
+> `bitsandbytes`, run the unseen LLaMA detector in full/half precision
+> (`load_in_4bit=False`).
+
+### Local services
+
+**Neo4j** — hierarchical community graph storage, used by `graph/*` (construction,
+update) and the `graph_neighbor` retrieval feature in `agent/retrieval.py` (lazy,
+fail-safe — the agent degrades gracefully without it):
+
+- Community Edition **4.4.x** on `neo4j://localhost:7687`, auth `neo4j / avs01046`
+  (matches the credentials used across `graph/` and `agent/retrieval.py`).
+- Set the password before first start: `bin/neo4j-admin set-initial-password avs01046`.
+- On JDK 17, append to `conf/neo4j.conf`:
+  `dbms.jvm.additional=--add-opens=java.base/java.nio=ALL-UNNAMED` (plus
+  `sun.nio.ch`, `java.lang`, `java.util`, `java.lang.reflect`).
+- `graph/update_graph.py::run_test_update` optionally uses a second instance on
+  port **7688** (`neo4j_updated`).
+- Python client: `py2neo==2021.2.4` (era-matched to Neo4j 4.4 / Bolt 4.4).
+
+**Milvus** — no server needed. All code paths (`agent/retrieval.py`,
+`graph/vector.py`) use embedded **Milvus Lite** with local `milvus.db` files under
+`platform_data/.../vectorDB/`; the multi-perspective retrieval also keeps a numpy
+`.npz` mirror (default when `whether_milvus=False`).
 
 ### Local model
 

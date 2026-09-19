@@ -247,7 +247,9 @@ class IdentificationAgent:
                 from decomposition import main as decomposition_main
                 print("=== 开始问题分解 ===")
                 logging.info("开始问题分解")
-                decomposition_result = decomposition_main(test_query)
+                # decomposition.main() iterates its argument — pass a list,
+                # otherwise the query string is consumed character by character.
+                decomposition_result = decomposition_main([test_query])
                 print("=== 问题分解完成 ===\n")
                 logging.info("问题分解完成")
                 problems = decomposition_result.get("identified_problems", problems)

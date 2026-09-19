@@ -322,12 +322,22 @@ class PairDataset(Dataset):
 
 def train_model(X, y, p_idx, hidden_dims=(128, 64), latent_dim=16,
                 lam=1.0, margin=2.0, lr=1e-3, bs=64, epochs=100,
-                sim_ratio=0.25, device="cpu", save_path=None):
+                sim_ratio=0.25, device="cpu", save_path=None,
+                data_parallel=True):
     model = PerspectiveAwareCAE(X.shape[1], hidden_dims, latent_dim).to(device)
+    # Split each batch across all visible GPUs (8-card box). The loss is
+    # computed outside the model on the gathered outputs, so DataParallel is
+    # sufficient here (no cross-rank gradient sync needed beyond DP's own).
+    if data_parallel and str(device).startswith("cuda") and torch.cuda.device_count() > 1:
+        logger.info(f"DataParallel across {torch.cuda.device_count()} GPUs")
+        model = torch.nn.DataParallel(model)
     crit = PerspectiveWeightedLoss(p_idx, DRIFT_SENSITIVITY, lam, margin)
     opt = torch.optim.Adam(model.parameters(), lr=lr)
     sched = torch.optim.lr_scheduler.ReduceLROnPlateau(opt, patience=10, factor=0.5)
-    loader = DataLoader(PairDataset(X, y, sim_ratio), batch_size=bs, shuffle=True, drop_last=True)
+    n_workers = int(os.environ.get("DRIFT_NUM_WORKERS", "8"))
+    loader = DataLoader(PairDataset(X, y, sim_ratio), batch_size=bs, shuffle=True,
+                        drop_last=True, num_workers=n_workers,
+                        persistent_workers=n_workers > 0)
 
     best = float("inf")
     for ep in range(epochs):
@@ -351,7 +361,11 @@ def train_model(X, y, p_idx, hidden_dims=(128, 64), latent_dim=16,
             best = avg
             if save_path:
                 os.makedirs(os.path.dirname(save_path), exist_ok=True)
-                torch.save({"state": model.state_dict(), "dim": X.shape[1],
+                # Strip the DataParallel "module." prefix so the checkpoint
+                # loads into a plain PerspectiveAwareCAE at inference time.
+                state = (model.module if isinstance(model, torch.nn.DataParallel)
+                         else model).state_dict()
+                torch.save({"state": state, "dim": X.shape[1],
                             "hidden": hidden_dims, "latent": latent_dim, "p_idx": p_idx}, save_path)
     logger.info(f"Training done. Best loss={best:.4f}")
     return model
