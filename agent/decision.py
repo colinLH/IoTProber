@@ -13,6 +13,7 @@ import json
 import re
 import logging
 import time
+from threading import RLock
 from typing import Any, Dict, List, Optional
 
 import pandas as pd
@@ -70,6 +71,26 @@ def _lookup_qdb(sub: str, ip: str) -> Dict:
     return {"status": "not_found", "ip": ip}
 
 
+def _local_section(ip: str) -> Dict:
+    """
+    Local embedding-based retrieval section: top-k most similar known IoT devices
+    to the query device, by comparing multi-perspective network fingerprint
+    embeddings stored in the vector database.
+    Returns device_type + cosine similarity scores.
+    """
+    hit = _lookup_qdb("local", ip)
+    if hit["status"] == "not_found":
+        return hit
+
+    entry = hit["entry"]
+    return {
+        "status": "found",
+        "candidate_dev": hit["candidate_dev"],
+        "top_k": entry.get("top_k", 5),
+        "similar_devices": entry.get("similar_devices", []),
+    }
+
+
 @tool
 def local_retrieval(ip: str) -> str:
     """
@@ -83,38 +104,18 @@ def local_retrieval(ip: str) -> str:
     Args:
         ip: IP address of the query device.
     """
-    hit = _lookup_qdb("local", ip)
-    if hit["status"] == "not_found":
-        return json.dumps(hit, ensure_ascii=False)
-
-    entry = hit["entry"]
-    return json.dumps(
-        {
-            "status": "found",
-            "candidate_dev": hit["candidate_dev"],
-            "top_k": entry.get("top_k", 5),
-            "similar_devices": entry.get("similar_devices", []),
-        },
-        ensure_ascii=False,
-        indent=2,
-    )
+    return json.dumps(_local_section(ip), ensure_ascii=False, indent=2)
 
 
-@tool
-def community_retrieval(ip: str) -> str:
+def _community_section(ip: str) -> Dict:
     """
-    Community / cluster-level retrieval: identifies which device behaviour clusters
-    the query device belongs to, based on the similar IPs found in local retrieval.
+    Community / cluster-level retrieval section: which device behaviour clusters
+    the query device belongs to (based on the similar IPs from local retrieval).
     Returns matched cluster common-pattern reports and per-cluster similarity scores.
-
-    Call this tool SECOND to obtain cluster-level contextual evidence.
-
-    Args:
-        ip: IP address of the query device.
     """
     hit = _lookup_qdb("community", ip)
     if hit["status"] == "not_found":
-        return json.dumps(hit, ensure_ascii=False)
+        return hit
 
     entry = hit["entry"]
     matched = entry.get("matched_clusters", [])
@@ -142,33 +143,38 @@ def community_retrieval(ip: str) -> str:
             }
         )
 
-    return json.dumps(
-        {
-            "status":         "found",
-            "total_clusters": entry.get("total_clusters", len(matched)),
-            "matched_clusters": trimmed,
-        },
-        ensure_ascii=False,
-        indent=2,
-    )
+    return {
+        "status":         "found",
+        "total_clusters": entry.get("total_clusters", len(matched)),
+        "matched_clusters": trimmed,
+    }
 
 
 @tool
-def reasoning_path_retrieval(ip: str) -> str:
+def community_retrieval(ip: str) -> str:
     """
-    Reasoning path retrieval: analyses the key discriminative features that place
-    the query device into a particular cluster, using Shannon entropy-based feature
-    importance scoring.  Returns path matching scores and weighted per-feature
-    similarity breakdowns.
+    Community / cluster-level retrieval: identifies which device behaviour clusters
+    the query device belongs to, based on the similar IPs found in local retrieval.
+    Returns matched cluster common-pattern reports and per-cluster similarity scores.
 
-    Call this tool LAST to understand the most discriminative evidence.
+    Call this tool SECOND to obtain cluster-level contextual evidence.
 
     Args:
         ip: IP address of the query device.
     """
+    return json.dumps(_community_section(ip), ensure_ascii=False, indent=2)
+
+
+def _reasoning_section(ip: str) -> Dict:
+    """
+    Reasoning path retrieval section: the key discriminative features that place
+    the query device into a particular cluster, via Shannon entropy-based feature
+    importance. Returns path matching scores and weighted per-feature similarity
+    breakdowns.
+    """
     hit = _lookup_qdb("reasoning", ip)
     if hit["status"] == "not_found":
-        return json.dumps(hit, ensure_ascii=False)
+        return hit
 
     entry = hit["entry"]
     path_results = entry.get("path_matching_results", [])
@@ -199,18 +205,206 @@ def reasoning_path_retrieval(ip: str) -> str:
 
     summary = entry.get("summary") or {}
     top_cluster = summary.get("top_cluster") or {}
-    return json.dumps(
-        {
-            "status":               "found",
-            "path_matching_results": trimmed,
-            "top_cluster_key":      top_cluster.get("cluster_key"),
-        },
-        ensure_ascii=False,
-        indent=2,
-    )
+    return {
+        "status":               "found",
+        "path_matching_results": trimmed,
+        "top_cluster_key":      top_cluster.get("cluster_key"),
+    }
+
+
+@tool
+def reasoning_path_retrieval(ip: str) -> str:
+    """
+    Reasoning path retrieval: analyses the key discriminative features that place
+    the query device into a particular cluster, using Shannon entropy-based feature
+    importance scoring.  Returns path matching scores and weighted per-feature
+    similarity breakdowns.
+
+    Call this tool LAST to understand the most discriminative evidence.
+
+    Args:
+        ip: IP address of the query device.
+    """
+    return json.dumps(_reasoning_section(ip), ensure_ascii=False, indent=2)
 
 
 _TOOLS = [local_retrieval, community_retrieval, reasoning_path_retrieval]
+
+
+# ═════════════════════════════════════════════════════════════════════════════
+# §1b  Configurable Retrieval Tool Runtime (for the LangGraph decision branches)
+# ═════════════════════════════════════════════════════════════════════════════
+#
+# The LangGraph decision LLM nodes call ONE unified retrieval tool. Which of the
+# three retrieval algorithms it actually runs is controlled by the CLI flags
+# (--local / --community / --reasoning); when none are supplied the default is
+# "all". The runtime lazily runs the live MultiLevelRetrieval algorithms for the
+# enabled levels (skipping any already cached in query_db), then returns the same
+# trimmed evidence sections consumed by the legacy tools.
+
+class RetrievalToolRuntime:
+    """
+    可配置的检索工具运行时: 按 (--local / --community / --reasoning) 选择要运行的检索算法, 默认全部.
+    Configurable retrieval runtime shared by the LangGraph decision branches.
+    """
+
+    def __init__(
+        self,
+        whether_local: bool = True,
+        whether_community: bool = True,
+        whether_reasoning: bool = True,
+        top_k: int = 5,
+        llm_type: str = "CLAUDE",
+        retrieval_agent: Any = None,
+    ):
+        # 若三者都未开启, 默认运行全部 / default to all when nothing is enabled
+        if not (whether_local or whether_community or whether_reasoning):
+            whether_local = whether_community = whether_reasoning = True
+        self.whether_local = whether_local
+        self.whether_community = whether_community
+        self.whether_reasoning = whether_reasoning
+        self.top_k = top_k
+        self.llm_type = llm_type
+        self.retrieval_agent = retrieval_agent
+        self._context: Dict[str, Dict[str, Any]] = {}
+        self._lock = RLock()
+
+    # ── per-IP context (device label + fingerprint) ──
+    def register(self, ip: str, device_name: str, fingerprint: Dict[str, Any]) -> None:
+        with self._lock:
+            self._context[str(ip)] = {
+                "device_name": device_name,
+                "fingerprint": fingerprint,
+            }
+            global _dev_labels
+            if device_name and device_name not in _dev_labels:
+                _dev_labels = list(_dev_labels) + [device_name]
+
+    def _ensure_retrieved(self, ip: str, ctx: Dict[str, Any]) -> None:
+        """Run the enabled retrieval algorithms for levels not yet cached in query_db."""
+        if self.retrieval_agent is None:
+            return
+        device_name = ctx["device_name"]
+        fingerprint = ctx["fingerprint"]
+        existing_local, existing_community, existing_reasoning = (
+            self.retrieval_agent.load_retrieval_result_by_type(ip, device_name)
+        )
+        need_local = self.whether_local and existing_local is None
+        need_community = self.whether_community and existing_community is None
+        need_reasoning = self.whether_reasoning and existing_reasoning is None
+        if not (need_local or need_community or need_reasoning):
+            return
+        # community / reasoning cascade requires local + community to exist
+        run_local = need_local
+        run_community = need_community or (need_reasoning and existing_community is None)
+        with self._lock:
+            self.retrieval_agent.run_retrieval_algorithm(
+                test_fingerprint=fingerprint,
+                top_k=self.top_k,
+                whether_local=run_local,
+                whether_community=run_community,
+                whether_reasoning=need_reasoning,
+                local_result=existing_local,
+                community_result=existing_community,
+                llm_type=self.llm_type,
+                device_name=device_name,
+            )
+            self.retrieval_agent.clear_history()
+
+    def ensure(self, ip: str) -> None:
+        """Public helper: run enabled retrieval algorithms for *ip* if not cached."""
+        ctx = self._context.get(str(ip))
+        if ctx is not None:
+            self._ensure_retrieved(str(ip), ctx)
+
+    def run(self, ip: str) -> Dict[str, Any]:
+        ip = str(ip)
+        ctx = self._context.get(ip)
+        if ctx is not None:
+            try:
+                self._ensure_retrieved(ip, ctx)
+            except Exception as exc:  # pragma: no cover - live retrieval is best-effort
+                logging.warning("Live retrieval failed for %s: %s", ip, exc)
+
+        combined: Dict[str, Any] = {"ip": ip, "levels_run": []}
+        if self.whether_local:
+            combined["local_entity_retrieval"] = _local_section(ip)
+            combined["levels_run"].append("local")
+        if self.whether_community:
+            combined["community_retrieval"] = _community_section(ip)
+            combined["levels_run"].append("community")
+        if self.whether_reasoning:
+            combined["reasoning_path_retrieval"] = _reasoning_section(ip)
+            combined["levels_run"].append("reasoning")
+        return combined
+
+
+# module-level runtime consulted by the configurable tool closure
+_retrieval_runtime: Optional[RetrievalToolRuntime] = None
+
+
+def set_retrieval_runtime(runtime: Optional[RetrievalToolRuntime]) -> None:
+    """Register the runtime that the configurable retrieval tool should use."""
+    global _retrieval_runtime
+    _retrieval_runtime = runtime
+
+
+@tool
+def configurable_multi_level_retrieval(ip: str) -> str:
+    """
+    Multi-Level Retrieval — the single unified RAG tool for the Decision Agent.
+    It runs the enabled retrieval algorithms (local-entity, community, and/or
+    reasoning-path, selected via the --local/--community/--reasoning flags,
+    defaulting to all) for the query device and returns their combined evidence.
+
+    You MUST call this tool exactly once, before any analysis, and base your
+    reasoning on its result.
+
+    Args:
+        ip: IP address of the query device.
+    """
+    runtime = _retrieval_runtime
+    if runtime is not None:
+        combined = runtime.run(ip)
+    else:
+        combined = {
+            "ip": ip,
+            "local_entity_retrieval": _local_section(ip),
+            "community_retrieval": _community_section(ip),
+            "reasoning_path_retrieval": _reasoning_section(ip),
+        }
+    return json.dumps(combined, ensure_ascii=False, indent=2)
+
+
+# ═════════════════════════════════════════════════════════════════════════════
+# §1c  Shared helpers for the LangGraph decision branches
+# ═════════════════════════════════════════════════════════════════════════════
+
+def extract_decision_json(text: str) -> Dict[str, Any]:
+    """Module-level wrapper around the robust JSON extractor."""
+    return DecisionAgent._extract_json(text)
+
+
+def normalize_decision(parsed: Dict[str, Any], llm_name: str, raw_output: str) -> Dict[str, Any]:
+    """Normalise a parsed LLM answer into the canonical classification dict."""
+    parsed = dict(parsed or {})
+    parsed.setdefault("device_type", "UNKNOWN")
+    parsed.setdefault("device_type_reason", "")
+    parsed.setdefault("vendor", "Unknown")
+    parsed.setdefault("vendor_reason", "")
+    parsed["confidence"] = float(parsed.get("confidence", 0.0))
+    parsed["device_type"] = str(parsed["device_type"]).upper().strip()
+    parsed["vendor"] = str(parsed.get("vendor", "Unknown"))
+    parsed["device_type_reason"] = str(parsed.get("device_type_reason", ""))
+    parsed["vendor_reason"] = str(parsed.get("vendor_reason", ""))
+    parsed["llm"] = llm_name
+    parsed["full_response"] = raw_output
+    return parsed
+
+
+def joint_vote(gemini: Dict[str, Any], claude: Dict[str, Any]) -> Dict[str, Any]:
+    """Module-level wrapper around the DecisionAgent joint-voting strategy."""
+    return DecisionAgent._joint_vote(gemini, claude)
 
 
 # ═════════════════════════════════════════════════════════════════════════════
@@ -226,13 +420,17 @@ traffic fingerprinting. Your mission is to identify the **device type** and
 CAMERA | NVR | ROUTER | NAS | PRINTER | MEDICAL | SCADA | BUILDING_AUTOMATION | POWER_METER
 
 ## Your Workflow
-You have access to three retrieval tools. Call them in order:
+Depending on the runtime configuration, you either have ONE unified retrieval
+tool (configurable_multi_level_retrieval) that returns all enabled retrieval
+levels in a single call, or THREE separate tools to call in order:
   1. local_retrieval(ip)           – get top-k similar known devices
   2. community_retrieval(ip)       – get cluster-level behavioral patterns
   3. reasoning_path_retrieval(ip)  – get discriminative feature importance
 
-After collecting all tool results, reason step by step through the
-Chain-of-Thought framework below, then emit your final JSON answer.
+Collect ALL retrieval evidence for the query IP (local-entity, community and
+reasoning-path levels) before answering. After collecting the tool results,
+reason step by step through the Chain-of-Thought framework below, then emit
+your final JSON answer.
 
 ## Chain-of-Thought Reasoning Framework
 
@@ -312,8 +510,9 @@ Raw network fingerprint (excluding null fields):
 {fingerprint}
 ```
 
-Call all three retrieval tools for this IP, then apply the 9-step reasoning
-framework, and output your final JSON classification.
+Call the available retrieval tool(s) for this IP to collect all retrieval
+evidence, then apply the 9-step reasoning framework, and output your final JSON
+classification.
 """
 
 
