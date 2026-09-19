@@ -700,7 +700,7 @@ class MultiLevelRetrieval:
                     else os.path.join(self.base_path, "graph")
                 sys.path.insert(0, graph_path)
                 from api import ProtocolGraph
-                self._graph_db = ProtocolGraph("neo4j://localhost:7687", "neo4j", "12345678")
+                self._graph_db = ProtocolGraph("neo4j://localhost:7687", "neo4j", "YOUR_NEO4J_PASSWORD")
                 logging.info("Neo4j ProtocolGraph connected for graph_neighbor queries.")
             except Exception as e:
                 logging.warning(f"Failed to connect to Neo4j for graph_neighbor: {e}")
