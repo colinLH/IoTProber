@@ -1,0 +1,128 @@
+{
+  "calibration": {
+    "type_confidence_threshold": 0.48,
+    "vendor_confidence_threshold": 0.7050000000000001,
+    "confidence_calibrated": true,
+    "calibration_strategy": "production_chain_real_fingerprints__type_MS_VPN_cross__vendor_pseudo_cross",
+    "samples_per_group": {
+      "type": 200,
+      "vendor": 200
+    },
+    "generated_validation_samples": 1587,
+    "folds": [
+      {
+        "name": "MEDIA_SERVER_calibration__VPN_test",
+        "type_threshold": 0.5,
+        "vendor_threshold": 0.5,
+        "type_test": {
+          "precision": 0.9815950920245399,
+          "recall": 0.8,
+          "f1": 0.8815426997245179,
+          "accuracy": 0.8925,
+          "tp": 160,
+          "fp": 3,
+          "tn": 197,
+          "fn": 40
+        },
+        "vendor_test": {
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0,
+          "accuracy": 0.495,
+          "tp": 0,
+          "fp": 2,
+          "tn": 198,
+          "fn": 200
+        },
+        "type_exact_accuracy": 0.865,
+        "vendor_exact_accuracy": 0.935
+      },
+      {
+        "name": "VPN_calibration__MEDIA_SERVER_test",
+        "type_threshold": 0.46,
+        "vendor_threshold": 0.91,
+        "type_test": {
+          "precision": 1.0,
+          "recall": 0.845,
+          "f1": 0.9159891598915989,
+          "accuracy": 0.9225,
+          "tp": 169,
+          "fp": 0,
+          "tn": 200,
+          "fn": 31
+        },
+        "vendor_test": {
+          "precision": 0.5,
+          "recall": 0.01,
+          "f1": 0.0196078431372549,
+          "accuracy": 0.5,
+          "tp": 2,
+          "fp": 2,
+          "tn": 198,
+          "fn": 198
+        },
+        "type_exact_accuracy": 0.895,
+        "vendor_exact_accuracy": 0.93
+      }
+    ],
+    "average_test_metrics": {
+      "type_test": {
+        "precision": 0.99079754601227,
+        "recall": 0.8225,
+        "f1": 0.8987659298080584,
+        "accuracy": 0.9075
+      },
+      "vendor_test": {
+        "precision": 0.25,
+        "recall": 0.005,
+        "f1": 0.00980392156862745,
+        "accuracy": 0.4975
+      },
+      "type_exact_accuracy": 0.88,
+      "vendor_exact_accuracy": 0.9325000000000001
+    }
+  },
+  "release_gate": {
+    "passed": false,
+    "checks": {
+      "type_novelty_f1": {
+        "actual": 0.8987659298080584,
+        "minimum": 0.8,
+        "passed": true
+      },
+      "vendor_novelty_f1": {
+        "actual": 0.00980392156862745,
+        "minimum": 0.8,
+        "passed": false
+      },
+      "type_exact_accuracy": {
+        "actual": 0.88,
+        "minimum": 0.5,
+        "passed": true
+      },
+      "vendor_exact_accuracy": {
+        "actual": 0.9325000000000001,
+        "minimum": 0.5,
+        "passed": true
+      }
+    }
+  },
+  "groups": {
+    "MEDIA_SERVER": {
+      "n": 200,
+      "type_exact": 0.845
+    },
+    "VPN": {
+      "n": 200,
+      "type_exact": 0.805
+    },
+    "known": {
+      "n": 787,
+      "type_exact": 0.9339263024142312
+    },
+    "pseudo": {
+      "n": 400,
+      "type_exact": 0.915
+    }
+  }
+}
