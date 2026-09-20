@@ -246,6 +246,15 @@ class PerspectiveWeightedLoss(nn.Module):
         # pre-build index tensors (moved to device on first call)
         self._idx_tensors = {p: torch.tensor(idx, dtype=torch.long) for p, idx in p_idx.items()}
         self._device_set = False
+        # Weighted dimension count used to normalise the contrastive distance.
+        # Without it the term is a SUM over ~56k dims (≈2.6e4) while recon is a
+        # per-dim MSE (≈8), so the reconstruction objective — which is what the
+        # drift score S(x) actually reads — was drowned out ~3300:1 and the loss
+        # never converged. Normalising makes dist a weighted RMS (scale-free).
+        self._norm = float(max(
+            1.0,
+            sum(self.sens.get(p, 0.5) * len(idx) for p, idx in p_idx.items()),
+        ))
 
     def _ensure_device(self, device):
         if not self._device_set:
@@ -277,7 +286,7 @@ class PerspectiveWeightedLoss(nn.Module):
             diff = rp[:half] - rp[half: 2 * half]
             w_dist_sq = w_dist_sq + alpha * (diff ** 2).sum(dim=1)
 
-        dist = torch.sqrt(w_dist_sq + 1e-10)
+        dist = torch.sqrt(w_dist_sq / self._norm + 1e-10)
         l_same = is_same * dist.pow(2)
         l_diff = (1 - is_same) * F.relu(self.margin - dist).pow(2)
         return (l_same + l_diff).mean()
@@ -375,20 +384,35 @@ def train_model(X, y, p_idx, hidden_dims=(128, 64), latent_dim=16,
 # 7. Drift Scoring & Detection
 # ═══════════════════════════════════════════════════════════
 
-def compute_drift_scores(model, X, p_idx, device="cpu"):
-    """Return (total_scores, per_perspective_scores)."""
-    model.eval()
-    xt = torch.tensor(X, dtype=torch.float32).to(device)
-    with torch.no_grad():
-        xh, _ = model(xt)
-    err = (xt.cpu().numpy() - xh.cpu().numpy()) ** 2
+def compute_drift_scores(model, X, p_idx, device="cpu", batch_size=None):
+    """Return (total_scores, per_perspective_scores).
 
-    p_scores, total = {}, np.zeros(len(X))
-    for p, idx in p_idx.items():
-        a = DRIFT_SENSITIVITY.get(p, 0.5)
-        ps = err[:, idx].mean(axis=1)
-        p_scores[p] = ps
-        total += a * ps
+    Scores are computed in device-sized batches: the full reference matrix is
+    ~80 GB (361k x 55k float32), far beyond one GPU, so a single .to(device)
+    would OOM. CPU keeps the old single-shot behaviour unless batch_size is set.
+    """
+    model.eval()
+    n = len(X)
+    if batch_size is None:
+        batch_size = 8192 if str(device).startswith("cuda") else n
+    # Accumulate per-chunk so peak memory stays batch-sized. Materialising the
+    # full (n x dim) reconstruction error would need ~80 GB per copy for the
+    # reference set and silently OOM-killed the process after training.
+    p_scores = {p: np.zeros(n, dtype=np.float32) for p in p_idx}
+    total = np.zeros(n, dtype=np.float64)
+    with torch.no_grad():
+        for start in range(0, n, batch_size):
+            end = min(start + batch_size, n)
+            xb = torch.tensor(np.asarray(X[start:end], dtype=np.float32)).to(device)
+            xh, _ = model(xb)
+            xb_np = xb.detach().float().cpu().numpy()
+            xh_np = xh.detach().float().cpu().numpy()
+            err = (xb_np - xh_np) ** 2
+            for p, idx in p_idx.items():
+                ps = err[:, idx].mean(axis=1)
+                p_scores[p][start:end] = ps
+                total[start:end] += DRIFT_SENSITIVITY.get(p, 0.5) * ps
+            del xb, xh, xb_np, xh_np, err
     return total, p_scores
 
 
@@ -530,6 +554,7 @@ def run_drift_detection(
     lam=1.0, margin=2.0, lr=1e-3, bs=64, epochs=100,
     sim_ratio=0.25, mad_thr=3.5,
     output_dir=DRIFT_OUTPUT_DIR, torch_device="cpu",
+    load_model_path=None,
 ):
     if device_types is None:
         device_types = DEVICE_TYPES
@@ -558,10 +583,20 @@ def run_drift_detection(
     scaler = StandardScaler(); X_ref_s = scaler.fit_transform(X_ref)
     logger.info(f"Ref: {X_ref_s.shape}  classes={len(le.classes_)}")
 
-    # ── Train ──
+    # ── Train (or reuse an existing checkpoint) ──
     mpath = os.path.join(output_dir, "paca_model.pt")
-    model = train_model(X_ref_s, y_ref, p_idx, hidden_dims, latent_dim,
-                        lam, margin, lr, bs, epochs, sim_ratio, torch_device, mpath)
+    if load_model_path:
+        logger.info(f"Loading pretrained model from {load_model_path} (skipping training)")
+        ck = torch.load(load_model_path, map_location="cpu", weights_only=False)
+        model = PerspectiveAwareCAE(ck["dim"], tuple(ck["hidden"]), ck["latent"])
+        model.load_state_dict(ck["state"])
+        model = model.to(torch_device)
+        if str(torch_device).startswith("cuda") and torch.cuda.device_count() > 1:
+            logger.info(f"DataParallel across {torch.cuda.device_count()} GPUs")
+            model = torch.nn.DataParallel(model)
+    else:
+        model = train_model(X_ref_s, y_ref, p_idx, hidden_dims, latent_dim,
+                            lam, margin, lr, bs, epochs, sim_ratio, torch_device, mpath)
 
     # ── Reference scores ──
     ref_scores, ref_ps = compute_drift_scores(model, X_ref_s, p_idx, torch_device)
@@ -663,8 +698,12 @@ if __name__ == "__main__":
     ap.add_argument("--sim_ratio", type=float, default=0.25)
     ap.add_argument("--mad_thr",   type=float, default=3.5)
     ap.add_argument("--device",    default="cpu")
+    ap.add_argument("--load_model", default=None,
+                    help="Reuse a trained paca_model.pt instead of retraining "
+                         "(rebuilds features + artifacts + threshold only).")
     a = ap.parse_args()
     run_drift_detection(a.ref_dir, a.test_dir, hidden_dims=a.hidden, latent_dim=a.latent,
                         lam=a.lam, margin=a.margin, lr=a.lr, bs=a.bs, epochs=a.epochs,
                         sim_ratio=a.sim_ratio, mad_thr=a.mad_thr,
-                        output_dir=a.output_dir, torch_device=a.device)
+                        output_dir=a.output_dir, torch_device=a.device,
+                        load_model_path=a.load_model)
