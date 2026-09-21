@@ -118,19 +118,21 @@ The `Qwen3-Embedding-0.6B` model is required for generating 1024-dim fingerprint
 | **Shodan** | Alternative/supplementary fingerprint data collection | `acquire_data.py::ShodanData`, API key in `search_config.json` |
 | **Neo4j** | Hierarchical device knowledge graph | `bolt://localhost:7687`, default user `neo4j`, password `<Neo4j password>` (see `graph/build.py`) |
 | **Milvus Lite** | Local ANN vector search | Auto-created at `platform_data/csv/local/1/vectorDB/milvus.db` |
-| **Claude** (Anthropic) | LLM reasoning & decision | `llm_config.json` → `CLAUDE` |
-| **DeepSeek** | LLM reasoning & decomposition | `llm_config.json` → `DEEPSEEK` |
-| **Gemini** (Google) | LLM reasoning & clustering summaries | `llm_config.json` → `GEMINI` |
-| **OpenAI** | Alternative LLM backend | `llm_config.json` → `OPENAI` |
+| **Claude** (Anthropic) | LLM reasoning & decision | `config/llm_config.json` → `CLAUDE` |
+| **DeepSeek** | LLM reasoning & decomposition | `config/llm_config.json` → `DEEPSEEK` |
+| **Gemini** (Google) | LLM reasoning & clustering summaries | `config/llm_config.json` → `GEMINI` |
+| **OpenAI** | Alternative LLM backend | `config/llm_config.json` → `OPENAI` |
 | **Tavily** | Web search for the `unseen` ReAct loop | `agent/tools/tavily_search.py` |
 
 ---
 
 ## Configuration
 
-### `llm_config.json`
+### `config/llm_config.json`
 
-Stores API credentials and model identifiers for all LLM backends:
+Provides the committed template for all LLM backends. Copy it to the ignored
+`config/llm_config.local.json` file before adding real credentials; the runtime
+automatically prefers the local override when it exists:
 
 ```json
 {
@@ -141,7 +143,7 @@ Stores API credentials and model identifiers for all LLM backends:
 }
 ```
 
-### `perspective_info.json`
+### `config/perspective_info.json`
 
 Defines the 11 fingerprint perspectives used for multi-perspective analysis, their feature columns, and retrieval weights:
 
@@ -159,14 +161,14 @@ Defines the 11 fingerprint perspectives used for multi-perspective analysis, the
 | `hfavicons` | HTTP favicon URLs | 0.15 |
 | `certificate` | TLS cert subjects, issuers, versions | 0.16 |
 
-### `rag_devices.json`
+### `config/rag_devices.json`
 
 Lists the 11 known IoT device types that the system is trained to identify:
 `NAS`, `NVR`, `POWER_METER`, `BUILDING_AUTOMATION`, `MEDICAL`, `ROUTER`, `PRINTER`, `SCADA`, `CAMERA`, `ALARM`, `CONTROLLER`
 
 ---
 
-### `new_devices.json`
+### `config/new_devices.json`
 
 Lists the 2 new IoT device types that the system aims to identify:
 `MEDIA_SERVER`, `VPN`
@@ -179,8 +181,9 @@ Lists the 2 new IoT device types that the system aims to identify:
 # 1. Activate the environment
 conda activate iotprober          # or: source .venv-iotprober/bin/activate
 
-# 2. Configure LLM API keys
-vi llm_config.json
+# 2. Configure LLM API keys in the ignored local override
+cp config/llm_config.json config/llm_config.local.json
+vi config/llm_config.local.json
 
 # 3. Acquire fingerprint data from Censys (requires Censys credentials)
 python acquire_data.py --collect -collect_new --filter_new --filter_old --convert --org_id <Your Org ID> --token <Your Token>
@@ -213,7 +216,7 @@ To enhance system usability and adaptability across different environments, IoTP
 - **Memory-mapped, independently-normalised per-perspective storage**: Each device embedding is a `1024 × 11`-dimensional vector; loading all embeddings at once would cause memory overflow. Instead of pre-multiplying perspective weights into the stored vector, each database device `d` stores `d_stored = [d₁/‖d₁‖₂, d₂/‖d₂‖₂, …, d₁₁/‖d₁₁‖₂]` (per-perspective L2 normalisation only) via memory-mapped `.npy` files.
 - **Query-time dynamic re-weighting**: For a query with availability mask `mᵢ`, IoTProber computes `W_A = Σᵢ wᵢmᵢ` and the relative weight `wᵢʳᵉˡ = wᵢmᵢ / W_A`, then builds `q_dyn = [w₁ʳᵉˡq₁/‖q₁‖₂, …, w₁₁ʳᵉˡq₁₁/‖q₁₁‖₂]`. The inner product `⟨d_stored, q_dyn⟩` equals the weighted sum of perspective-level cosine similarities, and the score is further scaled by the confidence-decay term `(W_A)^α` (`α = 0.5`) to discount queries with missing perspectives — this avoids unintentionally squaring the perspective weights and supports dynamic renormalisation when fingerprint perspectives are missing.
 - **Min-heap Top-k + `argpartition` pre-filtering**: A min-heap-based Top-k selection combined with `argpartition`-based pre-filtering minimises overhead in the inner search loop.
-- **Perspective weights** (table above, `perspective_info.json`): certificate and HTTP favicons carry the highest weights since they stay stable even when a device's network environment changes significantly (e.g., a certificate's issuer/subject is tightly bound to the physical device, and firmware versions often ship unique default favicons); hardware, software, and OS follow as strong vendor/product/version signals; DNS, WHOIS, and AS get the lowest weights since the same device type can be deployed across many regions worldwide, making these features highly variable.
+- **Perspective weights** (table above, `config/perspective_info.json`): certificate and HTTP favicons carry the highest weights since they stay stable even when a device's network environment changes significantly (e.g., a certificate's issuer/subject is tightly bound to the physical device, and firmware versions often ship unique default favicons); hardware, software, and OS follow as strong vendor/product/version signals; DNS, WHOIS, and AS get the lowest weights since the same device type can be deployed across many regions worldwide, making these features highly variable.
 
 ### Community-Level Clustering Retrieval (Milvus)
 
@@ -316,65 +319,43 @@ agent.py (LangGraph orchestrator)
 ## Directory Structure
 
 ```
-├── graph/                      # Graph construction and embedding
-│   ├── construction.py         # GraphConstruction: one-shot pipeline driver (cluster→build→HGT→vector)
-│   ├── cluster.py              # Multi-perspective clustering (HDBSCAN + KMeans + LLM)
-│   ├── cluster_cuml.py         # GPU-accelerated clustering (NVIDIA RAPIDS cuML)
-│   ├── build.py                # Neo4j hierarchical graph builder (HierarchicalGraph)
-│   ├── build_neo4j.py          # Batch UNWIND Cypher loader (fast bulk Neo4j import)
-│   ├── api.py                  # Neo4j Cypher query wrapper (ProtocolGraph)
-│   ├── HGT.py                  # Heterogeneous Graph Transformer for device embeddings
-│   ├── update_graph.py         # Incremental graph update (new devices, partial re-clustering)
-│   └── vector.py               # Milvus Lite vector DB storage and indexing
-│
-├── agent/                      # Core identification and reasoning pipeline
-│   ├── agent.py                # IdentificationAgent + IoTDecisionGraph (LangGraph orchestrator, main entry point)
-│   ├── retrieval.py            # MultiLevelRetrieval: local / community / reasoning
-│   ├── decomposition.py        # DecompositionAgent: query intent decomposition
-│   ├── decision.py             # DecisionAgent: retrieval tools + confidence-weighted joint voting
-│   ├── drift.py                # PACA: concept drift detection autoencoder
-│   ├── unseen.py               # UnseenDeviceDetector: LLaMA-3.1-8B (+LoRA) unseen detection
-│   ├── app.py                  # Flask REST API server (web interface backend)
-│   └── tools/
-│       └── tavily_search.py    # Tavily web-search tool used by the unseen ReAct loop
-│
-├── evaluation/                 # Test data and evaluation results (see Hugging Face dataset)
-│   ├── split_data.py           # Train/test split utility
-│   ├── validation/             # Per-device test CSVs (test_{DEV}_1.csv)
-│   ├── unseen/                 # Unseen device evaluation data
-│   └── drift/                  # Concept drift evaluation data
-│
-├── platform_data/              # Raw fingerprint data fetched from Censys/Shodan
-│   └── csv/                    # Processed CSV and embedding files
-│       ├── all/                # Raw fingerprint CSV
-│       ├── label/              # Vendor label CSV
-│       ├── rag/                # Rag fingerprint data clustering result
-│           ├── community/
-│               ├── embedding_overall  # Comprehensive-view clustering result
-│               ├── single             # Single-perspective clustering result
-│           ├── embedding_local/       # Entity Node - embedding
-│           ├── vectorDB/
-│               ├── local_npz/         # Local Entity
-│               ├── milvus.db          # Milvus Embedding Stored Database
-│
-├── drift_data/                 # Concept drift detection outputs
-├── qwen3_embedding_06b/        # Local Qwen3-Embedding-0.6B model weights
-├── Meta-Llama-3.1-8B-Instruct/ # Local LLaMA model weights and LoRA adapters
-└── agent/query_db/             # Cached retrieval results per device per IP
-    ├── local/{DEV}_local.json
-    ├── community/{DEV}_community.json
-    └── reasoning/{DEV}_reasoning.json
-├── acquire_data.py             # Censys / Shodan data acquisition (CensysData, ShodanData)
-├── llm.py                      # LLM abstraction layer (Claude / DeepSeek / Gemini / OpenAI)
-├── util.py                     # Shared utilities (feature loading, text processing, etc.)
-├── llm_config.json             # LLM API keys, base URLs, and model names
-├── perspective_info.json       # 11-perspective definitions with feature columns and weights
-├── perspective_name.json       # Perspective cluster label names
-├── local_used_features.txt     # 25 features used for local retrieval vectors
-├── rag_devices.json            # Known IoT device type labels
-├── new_devices.json            # Candidate new device type labels
+IoTProber/
+├── config/                     # Fixed configuration and metadata
+│   ├── llm_config.json         # Committed LLM configuration template
+│   ├── perspective_info.json   # Perspective feature columns, prompts, and weights
+│   ├── perspective_name.json   # Perspective cluster label names
+│   ├── local_used_features.txt # Features used for local retrieval vectors
+│   ├── rag_devices.json        # Known IoT device type labels
+│   ├── all_IoT_devices.json    # Full device-type catalogue for unseen detection
+│   ├── new_devices.json        # Candidate new device type labels
+│   └── README.md               # Configuration file reference
+├── graph/                      # Graph construction, clustering, HGT, and vector indexing
+│   ├── construction.py         # End-to-end graph pipeline driver
+│   ├── cluster.py              # Multi-perspective HDBSCAN/KMeans clustering
+│   ├── HGT.py                  # Heterogeneous Graph Transformer embeddings
+│   ├── build.py                # Neo4j hierarchical graph builder
+│   ├── update_graph.py         # Incremental graph update and re-clustering
+│   └── vector.py               # Milvus Lite and NumPy vector storage
+├── agent/                      # Identification and reasoning pipeline
+│   ├── agent.py                # Main IdentificationAgent/LangGraph entry point
+│   ├── retrieval.py            # Local, community, and reasoning retrieval
+│   ├── decision.py             # Confidence-weighted joint decision logic
+│   ├── unseen.py               # Fine-tuned unseen-device detection
+│   ├── drift.py                # PACA concept-drift detection
+│   └── query_db/               # Per-device retrieval cache generated at runtime
+├── demo/                       # Curated examples, notebook, and local demo UI
+├── evaluation/                 # Validation, unseen-device, and drift evaluation
+├── platform_data/              # Raw fingerprints, embeddings, communities, and vector DB
+├── entity_graph/               # Exported Device-Feature graph CSV files
+├── drift_data/                 # Concept-drift artifacts generated at runtime
+├── qwen3_embedding_06b/        # Local Qwen3 embedding model (not tracked)
+├── Meta-Llama-3.1-8B-Instruct/ # Local LLaMA model/adapters (not tracked)
+├── path_config.py              # Central path definitions used by graph/ and agent/
+├── acquire_data.py             # Censys/Shodan data acquisition
+├── llm.py                      # Shared LLM client abstraction
+├── util.py                     # Shared loaders and processing utilities
 ├── requirements.txt            # Pinned Python dependencies
-│
+└── readme.md                   # Project documentation
 ```
 
 ---
@@ -483,7 +464,7 @@ agent.py (LangGraph orchestrator)
 ### `llm.py` — LLM Abstraction Layer
 - **Class**: `LLM`
 - Unified interface for calling Claude (Anthropic), DeepSeek, Gemini, and OpenAI.
-- Loads API keys and model names from `llm_config.json`.
+- Loads API keys and model names from `config/llm_config.json`.
 - Supports single-turn `chat_with_llm()`, batch `batch_chat_with_llm()`, and JSON-mode responses.
 
 ### `util.py` — Shared Utilities

@@ -50,9 +50,13 @@ import argparse
 import logging
 import time
 
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+from path_config import CONSTRUCTION_LOG_FILE, GRAPH_DIR, ROOT_DIR
+
 # ─── 路径配置 / Path config ───────────────────────────────────────────
-GRAPH_PATH = os.path.dirname(os.path.abspath(__file__))
-BASE_PATH = os.path.dirname(GRAPH_PATH)
+GRAPH_PATH = GRAPH_DIR
+BASE_PATH = ROOT_DIR
 
 # ─── 日志 / Logging ──────────────────────────────────────────────────
 logging.basicConfig(
@@ -304,7 +308,7 @@ def main():
     )
     parser.add_argument(
         "--devices", nargs="*", default=None,
-        help="设备类型范围 / Device types to process (default: all from rag_devices.json)"
+        help="设备类型范围 / Device types to process (default: all from config/rag_devices.json)"
     )
 
     args = parser.parse_args()
@@ -323,8 +327,7 @@ def main():
     do_vector  = args.all or args.vector
 
     # 添加文件日志处理器 / Add file log handler
-    log_filename = os.path.join(GRAPH_PATH, "construction.log")
-    file_handler = logging.FileHandler(log_filename, mode='a', encoding='utf-8')
+    file_handler = logging.FileHandler(CONSTRUCTION_LOG_FILE, mode='a', encoding='utf-8')
     file_handler.setLevel(logging.INFO)
     file_handler.setFormatter(logging.Formatter('%(asctime)s [%(levelname)s] %(message)s'))
     logging.getLogger().addHandler(file_handler)

@@ -45,6 +45,17 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from util import load_perspective_info, load_perspective_cluster_info, load_local_used_features
 from llm import LLM
+from path_config import (
+    ALL_DATA_DIR,
+    GRAPH_UPDATE_DIR,
+    LABEL_DATA_DIR,
+    LOCAL_USED_FEATURES_FILE,
+    RAG_DATA_DIR,
+    RAG_DEVICES_FILE,
+    RAG_MINOR_REVISION_DIR,
+    ROOT_DIR,
+    VALIDATION_DIR,
+)
 
 logging.basicConfig(
     level=logging.INFO,
@@ -54,8 +65,8 @@ log = logging.getLogger(__name__)
 
 # ─── Constants ───────────────────────────────────────────────────────────
 
-BASE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-MINOR_REVISION = os.path.join(BASE, "platform_data", "csv", "rag", "minor_revision")
+BASE = ROOT_DIR
+MINOR_REVISION = RAG_MINOR_REVISION_DIR
 SINGLE_DIR = os.path.join(MINOR_REVISION, "single")
 OVERALL_DIR = os.path.join(MINOR_REVISION, "embedding_overall")
 
@@ -75,7 +86,7 @@ CONFIDENCE_THRESHOLD = 0.3        # approximate_predict membership strength belo
 SUMMARY_LLM = "CLAUDE"            # LLM config key used for re-summarisation
 
 # All update-related output files are stored in this directory
-UPDATE_DIR = os.path.join(BASE, "graph", "update")
+UPDATE_DIR = GRAPH_UPDATE_DIR
 os.makedirs(UPDATE_DIR, exist_ok=True)
 
 SUMMARY_LOG = os.path.join(UPDATE_DIR, "summary_log.jsonl")
@@ -91,10 +102,9 @@ LLM_PRICING = {
     "GEMINI": {"input": 0.15, "output": 0.60},
 }
 
-# Device types loaded from rag_devices.json
+# Device types loaded from config/rag_devices.json
 def _load_all_test_devices():
-    path = os.path.join(BASE, "rag_devices.json")
-    with open(path, "r", encoding="utf-8") as f:
+    with open(RAG_DEVICES_FILE, "r", encoding="utf-8") as f:
         return json.load(f)["IoT"]
 
 ALL_TEST_DEVICES = _load_all_test_devices()
@@ -176,11 +186,11 @@ def _recompute_cluster_stats(points: np.ndarray) -> dict:
 
 # ─── Test-update helpers ──────────────────────────────────────────────────
 
-TEST_DIR = os.path.join(BASE, "evaluation", "validation", "46_features")
-LABEL_DIR = os.path.join(BASE, "platform_data", "csv", "label")
-ALL_DIR = os.path.join(BASE, "platform_data", "csv", "all")
-RAG_DIR = os.path.join(BASE, "platform_data", "csv", "rag")
-LOCAL_FEATURES = os.path.join(BASE, "local_used_feature.txt")
+TEST_DIR = os.path.join(VALIDATION_DIR, "46_features")
+LABEL_DIR = LABEL_DATA_DIR
+ALL_DIR = ALL_DATA_DIR
+RAG_DIR = RAG_DATA_DIR
+LOCAL_FEATURES = LOCAL_USED_FEATURES_FILE
 
 
 def _load_features_list():

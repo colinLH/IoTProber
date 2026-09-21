@@ -33,6 +33,13 @@ sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 
 from llm import LLM
 from util import *
+from path_config import (
+    EMBEDDING_MODEL_DIR,
+    ENTITY_GRAPH_DIR,
+    LOCAL_DATA_DIR,
+    PLATFORM_DATA_DIR,
+    ROOT_DIR,
+)
 
 logging.basicConfig(
     level=logging.INFO,
@@ -44,12 +51,12 @@ os.environ["PYTORCH_ALLOC_CONF"] = "max_split_size_mb:128,expandable_segments:Tr
 class GraphClustering:
     def __init__(self, gpu=1, devices=None):
         self.gpu = gpu
-        self.base_path = os.path.dirname(os.path.dirname(__file__))
+        self.base_path = ROOT_DIR
         # self.data_path = os.path.join(self.base_path, "rag_data")
-        self.data_path = os.path.join(self.base_path, "platform_data")
+        self.data_path = PLATFORM_DATA_DIR
         # self.save_path = os.path.join(self.data_path, "csv")
-        self.save_path = os.path.join(self.data_path, "csv/local/1")
-        self.embedding_model_path = os.path.join(self.base_path, "qwen3_embedding_06b")
+        self.save_path = LOCAL_DATA_DIR
+        self.embedding_model_path = EMBEDDING_MODEL_DIR
         self.geolocator = Nominatim(user_agent="abcd")
         self.platform_feature_cols = ["ip", "as-asn", "as-name", "as-bgp_prefix", "as-country_code", "as-info", 
                                     "loc-latitude", "loc-longitude", "loc-continent", "loc-country", "loc-country_code", "loc-province", "loc-city", "loc-postal_code", "loc-timezone", "loc-info", 
@@ -62,7 +69,7 @@ class GraphClustering:
                                     "cert-fingerprints", "cert-subjects", "cert-issuers", "cert-info", "tls-versions", 
                                     "http-bodys", "http-tags", "http-favicon-urls", "http-favicon-hashes", "http-part-info", "http-info"]
        
-        self.entity_graph_path = os.path.join(self.base_path, "entity_graph")
+        self.entity_graph_path = ENTITY_GRAPH_DIR
         
         self.perspective_info_config = load_perspective_info()
         self.perspective_cluster_info = load_perspective_cluster_info()
@@ -1852,7 +1859,7 @@ if __name__ == "__main__":
     parser.add_argument("--hgt", action="store_true", help="Whether to cluster devices using HGT global embeddings")
     parser.add_argument("--report", action="store_true", help="Whether to geneate clustering report")
     parser.add_argument("--recovery", action="store_true", help="Whether to recover from errors in previous report generation")
-    parser.add_argument("--devices", nargs="*", default=None, help="Device types to process (default: all from rag_devices.json)")
+    parser.add_argument("--devices", nargs="*", default=None, help="Device types to process (default: all from config/rag_devices.json)")
 
     args = parser.parse_args()
 

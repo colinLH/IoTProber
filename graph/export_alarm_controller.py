@@ -1,11 +1,16 @@
 """Export ALARM and CONTROLLER Device-Feature subgraph from Neo4j
 and append to entity_graph/{node,relation}.csv."""
 import os
+import sys
 import pandas as pd
 from py2neo import Graph
 
-BASE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-ENTITY_GRAPH = os.path.join(BASE, "entity_graph")
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+from path_config import ENTITY_GRAPH_DIR, ROOT_DIR
+
+BASE = ROOT_DIR
+ENTITY_GRAPH = ENTITY_GRAPH_DIR
 NEO4J = Graph("neo4j://localhost:7687", auth=("neo4j", "avs01046"))
 
 existing_nodes = pd.read_csv(os.path.join(ENTITY_GRAPH, "node.csv"), usecols=["_id"])

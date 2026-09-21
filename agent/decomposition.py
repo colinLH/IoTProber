@@ -5,6 +5,7 @@ import os
 import sys
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import time
 import json
@@ -15,6 +16,7 @@ from langchain_deepseek import ChatDeepSeek
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_openai import ChatOpenAI
 from config import GEMINI_API_KEY, DEEPSEEK_API_KEY, OPENAI_API_KEY
+from path_config import QUERY_DB_DIR
 
 warnings.filterwarnings("ignore")
 
@@ -34,7 +36,7 @@ class DecompositionAgent:
     
     def __init__(self, llm: str = "gemini"):
 
-        self.query_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "query_db")
+        self.query_path = QUERY_DB_DIR
 
         # 已知问题类型列表
         self.known_problems: Dict[str, str] = {

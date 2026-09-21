@@ -1311,7 +1311,7 @@ def main():
     parser.add_argument('--collect', action='store_true', help='Collect data from Censys')
     parser.add_argument('--collect_new', action='store_true', help='Collect MEDIA_SERVER and VPN device data from Censys')
     parser.add_argument('--filter_new', action='store_true', help='Filter and export MEDIA_SERVER and VPN CSV files')
-    parser.add_argument('--filter_old', action='store_true', help='Filter and export CSV files for all device types in rag_devices.json')
+    parser.add_argument('--filter_old', action='store_true', help='Filter and export CSV files for all device types in config/rag_devices.json')
     parser.add_argument('--convert', action='store_true', help='Convert JSON files to CSV')
     parser.add_argument('--drift', action='store_true', help='Collect IPs for drift detection')
     parser.add_argument('--org_id', type=str, help='Censys organization ID')
@@ -1351,7 +1351,7 @@ def main():
             cs.filter_and_export_csv(dev)
     
     if args.filter_old:
-        print("Starting filter and CSV export for rag_devices.json device types...")
+        print("Starting filter and CSV export for config/rag_devices.json device types...")
         for dev in cs.device_label_list:
             print(f"\nProcessing device type: {dev}")
             cs.filter_and_export_csv(dev)

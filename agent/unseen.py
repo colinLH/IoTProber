@@ -4,8 +4,8 @@ agent/unseen.py
 Unseen IoT Device Detection Module (基于 LLama-3.1-8B-Instruct 的 unseen 设备识别模块)
 
 Uses LLama-3.1-8B-Instruct (base or fine-tuned) to identify whether a query device
-is "unseen" (not belonging to any known device type in rag_devices.json), and if so,
-predict its possible type and vendor from the broader all_IoT_devices.json catalogue.
+is "unseen" (not belonging to any known device type in config/rag_devices.json), and if so,
+predict its possible type and vendor from the broader config/all_IoT_devices.json catalogue.
 
 Input:
     key perspectives 和 non-key perspectives, 来自 reasoning_path_retrieval 的输出.
@@ -76,38 +76,34 @@ from util import (
     match_known_unseen_type,
     match_known_unseen_vendor,
 )
+from path_config import (
+    ALL_DEVICES_FILE,
+    CLASSIFICATION_METADATA_FILE,
+    DEFAULT_LLM_MODEL_DIR,
+    LLM_CONFIG_FILE,
+    RAG_DEVICES_FILE,
+    ROOT_DIR,
+    UNSEEN_LOG_FILE,
+    UNSEEN_SUMMARY_CACHE_FILE,
+)
 
 # ── Logging ──────────────────────────────────────────────────────────────────
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(message)s",
-    filename=os.path.join(os.path.dirname(os.path.abspath(__file__)), "unseen.log"),
+    filename=UNSEEN_LOG_FILE,
     filemode="a",
 )
 
 # ── Path Constants ───────────────────────────────────────────────────────────
-_BASE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-_DEFAULT_MODEL_PATH = os.path.join(_BASE, "Meta-Llama-3.1-8B-Instruct")
-_RAG_DEVICES_PATH = os.path.join(_BASE, "rag_devices.json")
-_ALL_DEVICES_PATH = os.path.join(_BASE, "all_IoT_devices.json")
-_LLM_CFG_PATH = os.path.join(_BASE, "llm_config.json")
-_CLASSIFICATION_METADATA_PATH = os.path.join(
-    _BASE,
-    "evaluation",
-    "unseen",
-    "llama3",
-    "dataset",
-    "known_vendors.json",
-)
+_BASE = ROOT_DIR
+_DEFAULT_MODEL_PATH = DEFAULT_LLM_MODEL_DIR
+_RAG_DEVICES_PATH = RAG_DEVICES_FILE
+_ALL_DEVICES_PATH = ALL_DEVICES_FILE
+_LLM_CFG_PATH = LLM_CONFIG_FILE
+_CLASSIFICATION_METADATA_PATH = CLASSIFICATION_METADATA_FILE
 _METADATA_FILENAME = "known_vendors.json"
-_SUMMARY_CACHE_PATH = os.path.join(
-    _BASE,
-    "evaluation",
-    "unseen",
-    "llama3",
-    "data_summary_cache",
-    "summary_cache.jsonl",
-)
+_SUMMARY_CACHE_PATH = UNSEEN_SUMMARY_CACHE_FILE
 _DEFAULT_MAX_INPUT_TOKENS = 32768
 
 # 排除不参与局部检索和推理路径检索的 perspective
@@ -294,7 +290,7 @@ class UnseenDeviceDetector:
         trained_types = metadata.get("rag_device_types")
         if trained_types != self.rag_devices:
             raise ValueError(
-                "Adapter RAG device types differ from the current rag_devices.json"
+                "Adapter RAG device types differ from the current config/rag_devices.json"
             )
         vendors_by_type = metadata.get("known_vendors_by_type")
         if not isinstance(vendors_by_type, dict):

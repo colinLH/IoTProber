@@ -1,21 +1,29 @@
 """Optimized Neo4j hierarchical graph builder using batch UNWIND Cypher queries."""
 import os, sys, time, logging
 sys.path.append(os.path.join(os.path.dirname(__file__)))
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import pandas as pd
 from py2neo import Graph
+from path_config import (
+    LOCAL_DATA_DIR,
+    LOCAL_OVERALL_COMMUNITY_DIR,
+    LOCAL_SINGLE_COMMUNITY_DIR,
+    LOCAL_USED_FEATURES_FILE,
+    ROOT_DIR,
+)
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s [%(levelname)s] %(message)s')
 log = logging.getLogger(__name__)
 
-BASE = os.path.dirname(os.path.dirname(__file__))
-DATA = os.path.join(BASE, "platform_data", "csv", "local", "1")
-COMM = os.path.join(DATA, "community", "single")
-OVERALL = os.path.join(DATA, "community", "embedding_overall")
+BASE = ROOT_DIR
+DATA = LOCAL_DATA_DIR
+COMM = LOCAL_SINGLE_COMMUNITY_DIR
+OVERALL = LOCAL_OVERALL_COMMUNITY_DIR
 SKIP = {"ALARM", "CONTROLLER"}
 BATCH = 5000
 
 def load_features():
-    with open(os.path.join(BASE, "local_used_feature.txt")) as f:
+    with open(LOCAL_USED_FEATURES_FILE) as f:
         return [l.strip() for l in f if l.strip()]
 
 def discover_devs():
