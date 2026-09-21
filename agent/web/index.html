@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>IoTProber · 检索控制台</title>
+<style>
+:root { color-scheme: light; }
+.viz-root {
+  color-scheme: light;
+  --surface-1: #fcfcfb;
+  --surface-2: #f4f3f1;
+  --text-primary: #0b0b0b;
+  --text-secondary: #52514e;
+  --text-muted: #6b6a65;
+  --grid: #e1e0d9;
+  --series-1: #2a78d6;
+  --good: #0ca30c;
+  --critical: #d03b3b;
+}
+@media (prefers-color-scheme: dark) {
+  :root:where(:not([data-theme="light"])) .viz-root {
+    color-scheme: dark;
+    --surface-1: #1a1a19; --surface-2: #232322;
+    --text-primary: #ffffff; --text-secondary: #c3c2b7; --text-muted: #a8a79f;
+    --grid: #33322f; --series-1: #3987e5;
+  }
+}
+* { box-sizing: border-box; }
+body.viz-root { margin: 0; background: var(--surface-1); color: var(--text-primary);
+  font: 14px/1.55 -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif; }
+.wrap { max-width: 1080px; margin: 0 auto; padding: 26px 20px 64px; }
+h1 { font-size: 21px; margin: 0 0 4px; }
+.sub { color: var(--text-secondary); margin: 0 0 18px; }
+.bar { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 20px; }
+.pill { background: var(--surface-2); border-radius: 20px; padding: 4px 12px; font-size: 12.5px; color: var(--text-secondary); }
+.pill b { color: var(--text-primary); }
+.pill.ok::before { content: "●"; color: var(--good); margin-right: 6px; }
+.pill.bad::before { content: "●"; color: var(--critical); margin-right: 6px; }
+section { background: var(--surface-2); border-radius: 12px; padding: 16px 18px; margin-bottom: 16px; }
+section h2 { font-size: 14.5px; margin: 0 0 4px; }
+section .hint { color: var(--text-muted); font-size: 12px; margin-bottom: 10px; }
+label { display: block; font-size: 12.5px; color: var(--text-secondary); margin: 10px 0 4px; }
+textarea, input, select { width: 100%; border: 1px solid var(--grid); border-radius: 8px;
+  background: var(--surface-1); color: var(--text-primary); padding: 9px 10px;
+  font: 12.5px ui-monospace, Menlo, Consolas, monospace; }
+textarea { min-height: 78px; resize: vertical; }
+textarea.fp { min-height: 132px; }
+button { margin-top: 10px; border: 0; border-radius: 8px; padding: 8px 16px; font-size: 13px; font-weight: 600;
+  background: #2a78d6; color: #fff; cursor: pointer; }
+button.ghost { background: var(--surface-1); color: var(--text-primary); border: 1px solid var(--grid); }
+button:disabled { opacity: .55; cursor: default; }
+.row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+.out { margin-top: 12px; }
+pre { background: var(--surface-1); border-radius: 8px; padding: 11px; overflow: auto; max-height: 320px;
+  font: 11.5px/1.5 ui-monospace, Menlo, Consolas, monospace; color: var(--text-secondary); margin: 8px 0 0; }
+.err { color: var(--critical); }
+.tag { display: inline-block; background: var(--surface-1); border: 1px solid var(--grid); border-radius: 6px;
+  padding: 2px 8px; margin: 2px 6px 2px 0; font-size: 12px; color: var(--text-secondary); cursor: pointer; }
+.tag:hover { border-color: var(--series-1); color: var(--text-primary); }
+.kv { font-size: 12.5px; color: var(--text-secondary); }
+.kv b { color: var(--text-primary); }
+ul.hist { list-style: none; padding: 0; margin: 6px 0 0; max-height: 220px; overflow: auto; }
+ul.hist li { border-top: 1px solid var(--grid); padding: 7px 0; font-size: 12.5px; color: var(--text-secondary); }
+.meter { height: 8px; background: #cde2fb; border-radius: 3px; overflow: hidden; margin-top: 4px; }
+.meter > i { display: block; height: 8px; background: var(--series-1); border-radius: 0 3px 3px 0; }
+</style>
+</head>
+<body class="viz-root">
+<div class="wrap">
+  <h1>IoTProber · 检索控制台</h1>
+  <p class="sub">问题分解 + 多层次检索（local / community / reasoning）的交互界面 · 后端 <code>agent/app.py</code></p>
+
+  <div class="bar">
+    <span class="pill" id="health"><span>连接中…</span></span>
+    <span class="pill">当前 LLM：<b id="cur-llm">—</b></span>
+    <select id="llm" style="width:auto; margin-left:auto"></select>
+    <button class="ghost" id="switch">切换 LLM</button>
+  </div>
+
+  <section>
+    <h2>1 · 问题分解</h2>
+    <div class="hint">把自然语言查询拆解为已知问题类型（DEVICE_TYPE / DEVICE_VENDOR / …）</div>
+    <textarea id="q1">Identify the device type and vendor.</textarea>
+    <div class="row">
+      <button id="go1">分解</button>
+      <button class="ghost" id="known">加载已知问题</button>
+    </div>
+    <div class="out" id="out1"></div>
+    <div id="known-list"></div>
+  </section>
+
+  <section>
+    <h2>2 · 多层次检索</h2>
+    <div class="hint">给定查询与该设备的指纹（JSON，必须含 <code>ip</code> 字段），依次执行问题分解与 local/community/reasoning 检索。</div>
+    <label for="q2">查询</label>
+    <textarea id="q2">Identify the device type and vendor.</textarea>
+    <label for="fp">设备指纹 (JSON)</label>
+    <textarea id="fp" class="fp" placeholder='{"ip": "1.2.3.4", "hw-info": "...", "cert-info": "...", "sw-info": "..."}'></textarea>
+    <div class="row">
+      <button id="go2">检索</button>
+      <button class="ghost" id="sample">载入示例指纹</button>
+    </div>
+    <div class="out" id="out2"></div>
+  </section>
+
+  <section>
+    <h2>3 · 分解历史</h2>
+    <div class="row"><span class="kv" id="hist-count">—</span>
+      <button class="ghost" id="hist-refresh" style="margin-left:auto">刷新</button>
+      <button class="ghost" id="hist-clear">清空</button></div>
+    <ul class="hist" id="hist"></ul>
+  </section>
+</div>
+
+<script>
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c =>
+  ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const $ = id => document.getElementById(id);
+
+async function api(path, opts) {
+  const res = await fetch(path, opts);
+  let body = null;
+  try { body = await res.json(); } catch (e) { /* non-JSON error page */ }
+  if (!res.ok || (body && body.success === false))
+    throw new Error((body && body.error) || `HTTP ${res.status}`);
+  return body;
+}
+
+async function refreshHealth() {
+  const el = $('health');
+  try {
+    const h = await api('/api/health');
+    el.className = 'pill ' + (h.agent_initialized ? 'ok' : 'bad');
+    el.innerHTML = `<span>${h.agent_initialized ? '服务正常' : 'agent 未初始化'}</span>`;
+    $('cur-llm').textContent = h.current_llm || '—';
+  } catch (e) {
+    el.className = 'pill bad';
+    el.innerHTML = `<span>无法连接后端：${esc(e.message)}</span>`;
+  }
+}
+
+async function loadConfig() {
+  try {
+    const c = await api('/api/config');
+    const sel = $('llm');
+    sel.innerHTML = (c.config.available_llms || []).map(
+      l => `<option value="${esc(l)}"${l === c.config.current_llm ? ' selected' : ''}>${esc(l)}</option>`).join('');
+  } catch (e) { /* health pill already reports it */ }
+}
+
+function renderDecomposition(res) {
+  const r = res.result || {};
+  const probs = r.identified_problems || [];
+  return `<div class="kv">识别到的问题：<b>${probs.length ? probs.map(esc).join(' / ') : '(无)'}</b>
+      ${r.is_new_problem ? ' · <b>新问题</b>' : ''}</div>
+    <pre>${esc(JSON.stringify(r, null, 2))}</pre>`;
+}
+
+$('go1').onclick = async () => {
+  const btn = $('go1'), out = $('out1');
+  btn.disabled = true; btn.textContent = '分解中…';
+  try {
+    out.innerHTML = renderDecomposition(await api('/api/decompose', {
+      method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({query: $('q1').value})}));
+  } catch (e) { out.innerHTML = `<span class="err">⚠ ${esc(e.message)}</span>`; }
+  btn.disabled = false; btn.textContent = '分解';
+};
+
+$('known').onclick = async () => {
+  const box = $('known-list');
+  try {
+    const d = await api('/api/known-problems');
+    box.innerHTML = `<div class="kv" style="margin-top:10px">已知问题（点击填入查询）：</div>` +
+      d.problems.map(p => `<span class="tag" data-q="${esc(p)}">${esc(p)}</span>`).join('');
+    box.querySelectorAll('.tag').forEach(t => t.onclick = () => { $('q1').value = t.dataset.q; $('q2').value = t.dataset.q; });
+  } catch (e) { box.innerHTML = `<span class="err">⚠ ${esc(e.message)}</span>`; }
+};
+
+$('sample').onclick = () => {
+  $('fp').value = JSON.stringify({
+    ip: "192.0.2.10",
+    "hw-info": "hw-vendors: Hikvision|hw-products: DS-2CD|hw-versions: Unknown",
+    "sw-info": "sw-vendors: Hikvision|sw-products: web|sw-versions: Unknown",
+    "os-info": "os-vendor: linux|os-product: linux|os-version: Unknown",
+    "cert-info": "Subject: CN=IPC|Issuer: CN=IPC|TLS: tlsv1_2",
+    "dns-reverse": "cam-192-0-2-10.example.net"
+  }, null, 1);
+};
+
+$('go2').onclick = async () => {
+  const btn = $('go2'), out = $('out2');
+  let fp;
+  try { fp = JSON.parse($('fp').value); }
+  catch (e) { out.innerHTML = `<span class="err">⚠ 指纹不是合法 JSON</span>`; return; }
+  if (!fp || typeof fp !== 'object' || Array.isArray(fp) || !fp.ip) {
+    out.innerHTML = `<span class="err">⚠ 指纹必须是含 <code>ip</code> 字段的 JSON 对象</span>`; return;
+  }
+  btn.disabled = true; btn.textContent = '检索中…（多级检索可能耗时数十秒）';
+  try {
+    const res = await api('/api/retrieve', {
+      method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({query: $('q2').value, fingerprint: fp})});
+    const r = res.result || {};
+    const rr = r.retrieval_result || {};
+    const sims = (rr.local_result && rr.local_result.similar_devices) || [];
+    const top = sims.slice(0, 5).map(d =>
+      `<div class="kv">${esc(d.ip)} · ${esc(d.device_type)} · 相似度 <b>${Number(d.similarity_score).toFixed(4)}</b>
+         <div class="meter"><i style="width:${Math.max(0, Math.min(1, Number(d.similarity_score))) * 100}%"></i></div></div>`).join('');
+    out.innerHTML = `<div class="kv">分解：<b>${(r.decomposition_result && r.decomposition_result.identified_problems || []).map(esc).join(' / ') || '(无)'}</b>
+        ${r.from_cache ? ' · <b>来自缓存</b>' : ''}</div>
+      ${top ? `<div class="kv" style="margin-top:10px">局部检索 top-${Math.min(5, sims.length)}：</div>${top}` : ''}
+      <pre>${esc(JSON.stringify(r, null, 2))}</pre>`;
+    refreshHistory();
+  } catch (e) { out.innerHTML = `<span class="err">⚠ ${esc(e.message)}</span>`; }
+  btn.disabled = false; btn.textContent = '检索';
+};
+
+async function refreshHistory() {
+  try {
+    const d = await api('/api/history');
+    $('hist-count').innerHTML = `共 <b>${d.count}</b> 条`;
+    $('hist').innerHTML = (d.history || []).slice(-30).reverse().map(h => {
+      const q = h.original_query || h.query || '(未记录)';
+      const p = (h.identified_problems || []).join(' / ');
+      return `<li><b>${esc(q)}</b>${p ? ` → ${esc(p)}` : ''}</li>`;
+    }).join('') || '<li>(空)</li>';
+  } catch (e) { $('hist').innerHTML = `<li class="err">⚠ ${esc(e.message)}</li>`; }
+}
+
+$('hist-refresh').onclick = refreshHistory;
+$('hist-clear').onclick = async () => {
+  try { await api('/api/history', {method: 'DELETE'}); refreshHistory(); }
+  catch (e) { alert(e.message); }
+};
+$('switch').onclick = async () => {
+  const btn = $('switch');
+  btn.disabled = true;
+  try {
+    await api('/api/config/llm', {method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({llm: $('llm').value})});
+    await refreshHealth();
+  } catch (e) { alert(e.message); }
+  btn.disabled = false;
+};
+
+refreshHealth(); loadConfig(); refreshHistory();
+setInterval(refreshHealth, 20000);
+</script>
+</body>
+</html>
