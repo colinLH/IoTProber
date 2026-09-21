@@ -34,7 +34,7 @@ from util import *
 from path_config import (
     EMBEDDING_MODEL_DIR,
     ENTITY_GRAPH_DIR,
-    LEGACY_API_CONFIG_FILE,
+    LLM_CONFIG_FILE,
     LOCAL_DATA_DIR,
     PERSPECTIVE_NAME_FILE,
     PLATFORM_DATA_DIR,
@@ -99,18 +99,19 @@ class GraphClustering:
             self.perspective_name = self.single_features.keys()
 
     def load_api_keys(self):
-        """从 self.base_path 目录下的 config.json 加载 API 密钥"""
-        config_path = LEGACY_API_CONFIG_FILE
-        if not os.path.exists(config_path):
-            raise FileNotFoundError(f"配置文件不存在: {config_path}")
-        
-        with open(config_path, "r") as f:
+        """从统一的 llm_config.json 加载 API 密钥（不再维护第二份 config.json）。
+
+        Keys come from the single source of truth (config/llm_config.local.json when
+        present, else the committed template), reshaped to the flat dict this class
+        has always consumed.
+        """
+        with open(LLM_CONFIG_FILE, "r", encoding="utf-8") as f:
             config = json.load(f)
-        
+
         return {
-            "DEEPSEEK_API_KEY": config.get("DEEPSEEK_API_KEY", ""),
-            "GEMINI_API_KEY": config.get("GEMINI_API_KEY", ""),
-            "OPENAI_API_KEY": config.get("OPENAI_API_KEY", "")
+            "DEEPSEEK_API_KEY": config.get("DEEPSEEK", {}).get("API_KEY", ""),
+            "GEMINI_API_KEY": config.get("GEMINI", {}).get("API_KEY", ""),
+            "OPENAI_API_KEY": config.get("OPENAI", {}).get("API_KEY", ""),
         }
 
     def acquire_location(self, latitude, longitude):

@@ -15,7 +15,12 @@ CONFIG_DIR = os.path.join(ROOT_DIR, "config")
 
 # Data roots
 PLATFORM_DATA_DIR = os.path.join(ROOT_DIR, "platform_data")
-CSV_DATA_DIR = os.path.join(PLATFORM_DATA_DIR, "csv")
+CSV_DATA_DIR = os.path.abspath(
+    os.environ.get(
+        "IOTPROBER_CSV_DATA_DIR",
+        "/mnt/zwj_ckpt/iotprober/platform_data/csv",
+    )
+)
 LOCAL_DATA_DIR = os.path.join(CSV_DATA_DIR, "local", "1")
 RAG_DATA_DIR = os.path.join(CSV_DATA_DIR, "rag")
 LABEL_DATA_DIR = os.path.join(CSV_DATA_DIR, "label")
@@ -43,8 +48,8 @@ GRAPH_MODEL_DIR = os.path.join(GRAPH_DIR, "model")
 GRAPH_UPDATE_DIR = os.path.join(GRAPH_DIR, "update")
 DRIFT_OUTPUT_DIR = os.path.join(ROOT_DIR, "drift_data", "autoencoder_drift")
 
-# HGT input is intentionally outside the repository because of its size.
-HGT_INPUT_EMBEDDING_DIR = "/home/nfs/embedding_local"
+# The full Hugging Face snapshot already contains these embeddings.
+HGT_INPUT_EMBEDDING_DIR = os.path.join(RAG_DATA_DIR, "embedding_local")
 
 # Agent and evaluation output
 QUERY_DB_DIR = os.path.join(AGENT_DIR, "query_db")
@@ -71,7 +76,8 @@ LLM_CONFIG_FILE = (
     if os.path.isfile(LOCAL_LLM_CONFIG_FILE)
     else LLM_CONFIG_TEMPLATE_FILE
 )
-LEGACY_API_CONFIG_FILE = os.path.join(CONFIG_DIR, "config.json")
+# All API credentials (LLM + Tavily) live in the single config/llm_config.json —
+# there is no second, flat-key config file to keep in sync.
 RAG_DEVICES_FILE = os.path.join(CONFIG_DIR, "rag_devices.json")
 ALL_DEVICES_FILE = os.path.join(CONFIG_DIR, "all_IoT_devices.json")
 NEW_DEVICES_FILE = os.path.join(CONFIG_DIR, "new_devices.json")
