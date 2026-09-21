@@ -15,10 +15,19 @@ import json
 import time
 from py2neo import Graph
 
-BASE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-DATA = os.path.join(BASE, "platform_data", "csv", "rag")
-COMM = os.path.join(DATA, "community", "single")
-OVERALL = os.path.join(DATA, "community", "embedding_overall")
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+from path_config import (
+    RAG_DATA_DIR,
+    RAG_OVERALL_COMMUNITY_DIR,
+    RAG_SINGLE_COMMUNITY_DIR,
+    ROOT_DIR,
+)
+
+BASE = ROOT_DIR
+DATA = RAG_DATA_DIR
+COMM = RAG_SINGLE_COMMUNITY_DIR
+OVERALL = RAG_OVERALL_COMMUNITY_DIR
 NEO4J_URL = "neo4j://localhost:7687"
 NEO4J_USER = "neo4j"
 NEO4J_PASS = "avs01046"

@@ -40,7 +40,7 @@ sys.path.insert(0, os.path.join(REPO, "agent"))
 ADAPTER_DIR = os.path.join(REPO, "evaluation/unseen/llama3/results_v2/final_model")
 DRIFT_DIR = os.path.join(REPO, "drift_data/autoencoder_drift")
 
-TYPES = json.load(open(os.path.join(REPO, "rag_devices.json")))["IoT"]
+TYPES = json.load(open(os.path.join(REPO, "config", "rag_devices.json")))["IoT"]
 INFO_COLS = ("as-info", "whois-info", "os-info", "sw-info", "hw-info",
              "service-distribution", "http-info", "cert-info", "dns-reverse")
 

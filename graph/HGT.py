@@ -37,16 +37,30 @@ from langchain_huggingface import HuggingFaceEmbeddings
 import warnings
 warnings.filterwarnings("ignore")
 
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+from path_config import (
+    EMBEDDING_MODEL_DIR,
+    ENTITY_GRAPH_DIR,
+    GRAPH_MODEL_DIR,
+    HGT_LOG_FILE,
+    HGT_INPUT_EMBEDDING_DIR,
+    RAG_DATA_DIR,
+    RAG_DEVICES_FILE as CONFIGURED_RAG_DEVICES_FILE,
+    RAG_HGT_COMMUNITY_DIR,
+    ROOT_DIR,
+)
+
 # ─── 路径配置 / Path config ───────────────────────────────────────────
-BASE_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-LOCAL_PATH = os.path.join(BASE_PATH, "platform_data", "csv", "rag")
-ENTITY_GRAPH_PATH = os.path.join(BASE_PATH, "entity_graph")
-EMBEDDING_MODEL_PATH = os.path.join(BASE_PATH, "qwen3_embedding_06b")
-HGT_SAVE_PATH = os.path.join(LOCAL_PATH, "community", "embedding_HGT")
-RAG_DEVICES_FILE = os.path.join(BASE_PATH, "rag_devices.json")
-MODEL_SAVE_PATH = os.path.join(BASE_PATH, "graph", "model")
+BASE_PATH = ROOT_DIR
+LOCAL_PATH = RAG_DATA_DIR
+ENTITY_GRAPH_PATH = ENTITY_GRAPH_DIR
+EMBEDDING_MODEL_PATH = EMBEDDING_MODEL_DIR
+HGT_SAVE_PATH = RAG_HGT_COMMUNITY_DIR
+RAG_DEVICES_FILE = CONFIGURED_RAG_DEVICES_FILE
+MODEL_SAVE_PATH = GRAPH_MODEL_DIR
 # embedding_local CSV 存放在 NFS 上（本地空间不足），路径已改为 NFS
-EMBEDDING_LOCAL_PATH = "/home/nfs/embedding_local"
+EMBEDDING_LOCAL_PATH = HGT_INPUT_EMBEDDING_DIR
 
 # 11个视角名称（与embedding_local CSV列前缀一致，排除hpart/http）
 PERSPECTIVE_NAMES = ['as', 'whois', 'os', 'sw', 'hw', 'sd', 'body', 'htags', 'hfavicons', 'certificate', 'dns']
@@ -59,7 +73,7 @@ MINIBATCH_BATCH_SIZE = 4096      # 每批 seed device 数
 
 
 def load_rag_device_types():
-    """Load the allowed device types from rag_devices.json (IoT list)."""
+    """Load the allowed device types from config/rag_devices.json (IoT list)."""
     import json
     with open(RAG_DEVICES_FILE, 'r') as f:
         data = json.load(f)
@@ -627,11 +641,11 @@ def run_hgt(gpu: int = 1, num_epochs: int = 100, high_mem: bool = False, chunk_o
     device_nodes = node_df[node_df['_labels'] == ':Device']
     all_device_types = sorted(device_nodes['device_type'].unique().tolist())
 
-    # ── 只处理 rag_devices.json 中列出的设备类型 ──
+    # ── 只处理 config/rag_devices.json 中列出的设备类型 ──
     rag_device_types = load_rag_device_types()
     all_device_types = [d for d in all_device_types if d in rag_device_types]
     device_nodes = device_nodes[device_nodes['device_type'].isin(all_device_types)]
-    logging.info(f"[HGT] Device types (filtered by rag_devices.json): {all_device_types}")
+    logging.info(f"[HGT] Device types (filtered by config/rag_devices.json): {all_device_types}")
 
     # ── --resume：跳过已输出 CSV 的设备类型（避免重训已完成类型）──
     if resume:
@@ -754,8 +768,7 @@ def main():
     )
     args = parser.parse_args()
 
-    log_filename = "HGT.log"
-    file_handler = logging.FileHandler(log_filename, mode='a', encoding='utf-8')
+    file_handler = logging.FileHandler(HGT_LOG_FILE, mode='a', encoding='utf-8')
     file_handler.setLevel(logging.INFO)
     file_handler.setFormatter(logging.Formatter('%(asctime)s [%(levelname)s] %(message)s'))
     logging.getLogger().addHandler(file_handler)

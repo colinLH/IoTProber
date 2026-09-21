@@ -3,9 +3,18 @@ import sys
 import logging
 
 sys.path.append(os.path.join(os.path.dirname(__file__)))
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import pandas as pd
 from api import ProtocolGraph
+from path_config import (
+    ENTITY_GRAPH_DIR,
+    LOCAL_DATA_DIR,
+    LOCAL_OVERALL_COMMUNITY_DIR,
+    LOCAL_SINGLE_COMMUNITY_DIR,
+    LOCAL_USED_FEATURES_FILE,
+    ROOT_DIR,
+)
 
 logging.basicConfig(
     level=logging.INFO,
@@ -21,10 +30,10 @@ def feature_to_rel_type(feature_name: str) -> str:
 
 class HierarchicalGraph:
     def __init__(self, devices=None):
-        self.base_path = os.path.dirname(os.path.dirname(__file__))
-        self.data_path = os.path.join(self.base_path, "platform_data", "csv", "local", "1")
-        self.community_path = os.path.join(self.data_path, "community", "single")
-        self.overall_path = os.path.join(self.data_path, "community", "embedding_overall")
+        self.base_path = ROOT_DIR
+        self.data_path = LOCAL_DATA_DIR
+        self.community_path = LOCAL_SINGLE_COMMUNITY_DIR
+        self.overall_path = LOCAL_OVERALL_COMMUNITY_DIR
         self.graph = ProtocolGraph("neo4j://localhost:7687", "neo4j", "avs01046")
 
         self.fingerprint_features = self._load_fingerprint_features()
@@ -46,7 +55,7 @@ class HierarchicalGraph:
         return cid
 
     def _load_fingerprint_features(self):
-        features_path = os.path.join(self.base_path, "local_used_feature.txt")
+        features_path = LOCAL_USED_FEATURES_FILE
         with open(features_path, "r") as f:
             features = [line.strip() for line in f if line.strip()]
         log.info(f"Loaded {len(features)} fingerprint features: {features}")
@@ -342,7 +351,7 @@ class HierarchicalGraph:
         APOC dependency), while reusing the exact same Device/Feature/Has_* schema
         as build_layer1_device().
         """
-        entity_graph_dir = os.path.join(self.base_path, "entity_graph")
+        entity_graph_dir = ENTITY_GRAPH_DIR
         os.makedirs(entity_graph_dir, exist_ok=True)
 
         node_rows = []          # {_id, _labels, ip, device_type, feature_name, value}

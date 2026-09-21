@@ -28,13 +28,27 @@ from typing import List, Optional
 
 from llm import LLM
 from util import *
+from path_config import (
+    AGENT_DIR,
+    CSV_DATA_DIR,
+    EMBEDDING_MODEL_DIR,
+    GRAPH_DIR,
+    LOCAL_DATA_DIR,
+    LOCAL_OVERALL_COMMUNITY_DIR,
+    LOCAL_SINGLE_COMMUNITY_DIR,
+    LOCAL_VECTOR_DB_DIR,
+    QUERY_DB_DIR,
+    RETRIEVAL_LOG_FILE,
+    ROOT_DIR,
+    VECTOR_LOG_FILE,
+)
 
 warnings.filterwarnings("ignore")
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s [%(levelname)s] %(message)s',
     filemode='a',
-    filename="retrieval.log"
+    filename=RETRIEVAL_LOG_FILE
 )
 
 class MultiLevelRetrieval:
@@ -56,14 +70,14 @@ class MultiLevelRetrieval:
         """
         # 设置路径
         # Set paths
-        self.base_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-        self.csv_base_path = os.path.join(self.base_path, "platform_data", "csv")
+        self.base_path = ROOT_DIR
+        self.csv_base_path = CSV_DATA_DIR
         
-        self.local_path = os.path.join(self.csv_base_path, "local/1")
-        self.single_view_path = os.path.join(self.local_path, "community/single")
-        self.com_view_path = os.path.join(self.local_path, "community/embedding_overall")
+        self.local_path = LOCAL_DATA_DIR
+        self.single_view_path = LOCAL_SINGLE_COMMUNITY_DIR
+        self.com_view_path = LOCAL_OVERALL_COMMUNITY_DIR
 
-        self.agent_path = os.path.join(self.base_path, "agent")
+        self.agent_path = AGENT_DIR
 
         self.device_label_list = load_all_dev_labels()
         
@@ -87,8 +101,8 @@ class MultiLevelRetrieval:
         self.perspective_weights = list(self.perspective_weights_dict.values())
         
         # 初始化Milvus向量数据库客户端
-        self.vector_log_path = os.path.join(self.agent_path, "store_vector.log")
-        self.vector_db_path = os.path.join(self.local_path, "vectorDB")
+        self.vector_log_path = VECTOR_LOG_FILE
+        self.vector_db_path = LOCAL_VECTOR_DB_DIR
         os.makedirs(self.vector_db_path, exist_ok=True)
 
         self.milvus_db_path = os.path.join(self.vector_db_path, "milvus.db")
@@ -122,7 +136,7 @@ class MultiLevelRetrieval:
         Initialize embedding model
         """
         print("=== 初始化Embedding模型 ===")
-        embedding_model_path = os.path.join(self.base_path, "qwen3_embedding_06b")
+        embedding_model_path = EMBEDDING_MODEL_DIR
         
         if self.gpu != -1:
             self.embedding_model = HuggingFaceEmbeddings(
@@ -564,7 +578,6 @@ class MultiLevelRetrieval:
         resume_device = None
 
         if whether_resume:
-            log_path = os.path.join(self.agent_path, "store_vector.log")
             interrupted = self.parse_log_for_resume()
             if interrupted:
                 resume_perspective = interrupted["perspective"]  # 中断任务的 perspective
@@ -695,9 +708,7 @@ class MultiLevelRetrieval:
         """
         if self._graph_db is None:
             try:
-                graph_path = os.path.join(os.path.dirname(self.base_path), "graph") \
-                    if not os.path.isdir(os.path.join(self.base_path, "graph")) \
-                    else os.path.join(self.base_path, "graph")
+                graph_path = GRAPH_DIR
                 sys.path.insert(0, graph_path)
                 from api import ProtocolGraph
                 self._graph_db = ProtocolGraph("neo4j://localhost:7687", "neo4j", "avs01046")
@@ -1966,10 +1977,7 @@ class MultiLevelRetrieval:
     def save_history(self, filename: str = "retrieval_history.json"):
         """保存检索历史到单个文件 (兼容旧方式)
         Save retrieval history to a single file (backward compatible)"""
-        history_path = os.path.join(
-            os.path.dirname(os.path.abspath(__file__)),
-            "query_db"
-        )
+        history_path = QUERY_DB_DIR
         os.makedirs(history_path, exist_ok=True)
         # 读取旧历史文件内容
         # Read old history file content
@@ -2000,10 +2008,7 @@ class MultiLevelRetrieval:
             community_result: 社区检索结果 / Community retrieval result
             reasoning_result: 推理路径检索结果 / Reasoning path retrieval result
         """
-        query_db_path = os.path.join(
-            os.path.dirname(os.path.abspath(__file__)),
-            "query_db"
-        )
+        query_db_path = QUERY_DB_DIR
         
         type_map = {
             "local": local_result,
@@ -2064,10 +2069,7 @@ class MultiLevelRetrieval:
             List of retrieval results, or None if not found
         """
         filepath = os.path.join(
-            os.path.dirname(os.path.abspath(__file__)),
-            "query_db",
-            retrieval_type,
-            f"{device_name}_{retrieval_type}.json"
+            QUERY_DB_DIR, retrieval_type, f"{device_name}_{retrieval_type}.json"
         )
         
         if not os.path.exists(filepath):
@@ -2114,11 +2116,7 @@ class MultiLevelRetrieval:
     def load_history(self, filename: str = "retrieval_history.json"):
         """加载检索历史
         Load retrieval history"""
-        history_path = os.path.join(
-            os.path.dirname(os.path.abspath(__file__)),
-            "query_db",
-            filename
-        )
+        history_path = os.path.join(QUERY_DB_DIR, filename)
         
         if os.path.exists(history_path):
             with open(history_path, "r", encoding='utf-8') as f:
@@ -2139,11 +2137,7 @@ class MultiLevelRetrieval:
             如果未找到匹配记录，返回(None, None, None)
             Returns (None, None, None) if no matching record found
         """
-        history_path = os.path.join(
-            os.path.dirname(os.path.abspath(__file__)),
-            "query_db",
-            filename
-        )
+        history_path = os.path.join(QUERY_DB_DIR, filename)
         
         if not os.path.exists(history_path):
             print(f"警告: 历史记录文件不存在 {history_path}")
@@ -2334,7 +2328,7 @@ def _lookup_cached_retrieval(ip) -> Optional[Dict[str, Any]]:
     if ip is None:
         return None
     ip = str(ip)
-    qdb_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "query_db")
+    qdb_path = QUERY_DB_DIR
     cached: Dict[str, Any] = {
         "local_result": None,
         "community_result": None,

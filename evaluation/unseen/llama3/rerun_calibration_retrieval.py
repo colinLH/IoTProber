@@ -278,7 +278,9 @@ def run_merge(samples_per_group, ckpt_dir, tag=""):
     print("\nCalibration:", json.dumps({k: v for k, v in calibration.items() if k != "folds"}, indent=2, default=str))
     print("Release gate:", json.dumps(gate, indent=2, default=str))
 
-    cfg = json.load(open(os.path.join(REPO, "llm_config.json"), encoding="utf-8"))
+    cfg = json.load(
+        open(os.path.join(REPO, "config", "llm_config.json"), encoding="utf-8")
+    )
     out = dict(metadata)
     out.update(calibration)
     out["release_gate"] = gate

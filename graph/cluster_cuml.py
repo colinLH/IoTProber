@@ -31,6 +31,15 @@ from torch_geometric.nn import HGTConv, Linear
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 
 from util import *
+from path_config import (
+    EMBEDDING_MODEL_DIR,
+    ENTITY_GRAPH_DIR,
+    LEGACY_API_CONFIG_FILE,
+    LOCAL_DATA_DIR,
+    PERSPECTIVE_NAME_FILE,
+    PLATFORM_DATA_DIR,
+    ROOT_DIR,
+)
 
 logging.basicConfig(
     level=logging.INFO,
@@ -42,12 +51,12 @@ os.environ["PYTORCH_ALLOC_CONF"] = "max_split_size_mb:128,expandable_segments:Tr
 class GraphClustering:
     def __init__(self, gpu=1):
         self.gpu = gpu
-        self.base_path = os.path.dirname(os.path.dirname(__file__))
+        self.base_path = ROOT_DIR
         # self.data_path = os.path.join(self.base_path, "rag_data")
-        self.data_path = os.path.join(self.base_path, "platform_data")
+        self.data_path = PLATFORM_DATA_DIR
         # self.save_path = os.path.join(self.data_path, "csv")
-        self.save_path = os.path.join(self.data_path, "csv/local/1")
-        self.embedding_model_path = os.path.join(self.base_path, "qwen3_embedding_06b")
+        self.save_path = LOCAL_DATA_DIR
+        self.embedding_model_path = EMBEDDING_MODEL_DIR
         self.geolocator = Nominatim(user_agent="abcd")
         self.platform_feature_cols = ["ip", "as-asn", "as-name", "as-bgp_prefix", "as-country_code", "as-info", 
                                     "loc-latitude", "loc-longitude", "loc-continent", "loc-country", "loc-country_code", "loc-province", "loc-city", "loc-postal_code", "loc-timezone", "loc-info", 
@@ -60,10 +69,10 @@ class GraphClustering:
                                     "cert-fingerprints", "cert-subjects", "cert-issuers", "cert-info", "tls-versions", 
                                     "http-bodys", "http-tags", "http-favicon-urls", "http-favicon-hashes", "http-part-info", "http-info"]
        
-        with open(os.path.join(self.base_path, "perspective_name.json"), "r") as f:
+        with open(PERSPECTIVE_NAME_FILE, "r") as f:
             self.perspective_cols = json.load(f)
 
-        self.entity_graph_path = os.path.join(self.base_path, "entity_graph")
+        self.entity_graph_path = ENTITY_GRAPH_DIR
         self.api_keys = load_api_keys()
         self.initialize()
 
@@ -85,13 +94,13 @@ class GraphClustering:
         gc.collect()
         torch.cuda.empty_cache()
         torch.cuda.reset_peak_memory_stats()
-        with open(os.path.join(self.base_path, "perspective_name.json"), "r") as f:
+        with open(PERSPECTIVE_NAME_FILE, "r") as f:
             self.single_features = json.load(f)
             self.perspective_name = self.single_features.keys()
 
     def load_api_keys(self):
         """从 self.base_path 目录下的 config.json 加载 API 密钥"""
-        config_path = os.path.join(self.base_path, "config.json")
+        config_path = LEGACY_API_CONFIG_FILE
         if not os.path.exists(config_path):
             raise FileNotFoundError(f"配置文件不存在: {config_path}")
         
@@ -484,7 +493,7 @@ class GraphClustering:
                     # 提取milestone文件中的index并找到最大值
                     milestone_indices = [int(f.split('_')[-1].replace('.csv', '')) for f in milestone_files]
                     last_milestone_index = max(milestone_indices)
-    
+
                     # 从milestone文件加载已有的embeddings
                     last_milestone_path = os.path.join(cluster_save_path, f"ipraw_{dev}_embedding_{perspective_name}_milestone_{last_milestone_index}.csv")
                     milestone_df = pd.read_csv(last_milestone_path)
@@ -1790,4 +1799,3 @@ if __name__ == "__main__":
         logging.getLogger().addHandler(file_handler)
 
         gc.generate_explain_report()
-    

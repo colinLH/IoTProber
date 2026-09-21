@@ -4,7 +4,7 @@ agent/util.py — forwarding shim to the repository-root util.py.
 历史上这里是根目录 util.py 的一个过时副本 (缺少 unseen 检测所需的
 UNSEEN_INFO_COLS / DeepSeekFingerprintSummarizer 等符号, 且 BASE_PATH
 指向 agent/ 而非仓库根目录, 导致 load_perspective_info 等 loader 找不到
-perspective_info.json). 为避免两份副本再次漂移, 本文件现按路径直接加载
+config/perspective_info.json). 为避免两份副本再次漂移, 本文件现按路径直接加载
 根目录的 util.py 并转发其全部公开符号, 使 `from util import *` 无论解析
 到哪一份都得到相同且完整的模块.
 Historically this file was a stale subset copy of the repository-root util.py
