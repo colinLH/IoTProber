@@ -35,9 +35,22 @@ import numpy as np
 from typing import List, Dict, Any, Optional
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from retrieval import MultiLevelRetrieval
 from util import *
+from path_config import (
+    AGENT_LOG_FILE,
+    GRAPH_DIR,
+    LLM_CONFIG_FILE,
+    PREDICTION_DIR,
+    QUERY_DB_DIR,
+    ROOT_DIR,
+    TYPE_PREDICTION_DIR,
+    VALIDATION_DIR,
+    VECTOR_LOG_FILE,
+    VENDOR_PREDICTION_DIR,
+)
 
 warnings.filterwarnings("ignore", category=FutureWarning)
 
@@ -45,7 +58,7 @@ logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s [%(levelname)s] %(message)s',
     filemode='a',
-    filename="agent.log"
+    filename=AGENT_LOG_FILE
 )
 
 
@@ -75,8 +88,8 @@ class IdentificationAgent:
         Args:
             llm: LLM类型 / LLM type ("gemini", "deepseek", "openai")
         """
-        self.base_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        self.validation_path = os.path.join(self.base_path, "evaluation", "validation")
+        self.base_path = ROOT_DIR
+        self.validation_path = VALIDATION_DIR
         self.llm_type = llm
 
         # 初始化MultiLevelRetrieval
@@ -173,9 +186,7 @@ class IdentificationAgent:
         Returns:
             已完成所有所需检索类型的IP集合 / Set of IPs that completed all required retrieval types
         """
-        query_db_path = os.path.join(
-            os.path.dirname(os.path.abspath(__file__)), "query_db"
-        )
+        query_db_path = QUERY_DB_DIR
 
         type_flags = []
         if whether_local:
@@ -380,7 +391,7 @@ class IdentificationAgent:
         一次性从 evaluation/predict/{device_name}_type_prediction.json 加载已有决策结果的IP集合
         Batch-load IPs that already have decision results from the prediction JSON file
         """
-        result_path = os.path.join(self.base_path, "evaluation", "predict")
+        result_path = PREDICTION_DIR
         filepath = os.path.join(result_path, f"{device_name}_type_prediction.json")
         done_ips = set()
         if os.path.exists(filepath):
@@ -407,9 +418,9 @@ class IdentificationAgent:
 
         Merge new decision results with existing ones and save to three locations.
         """
-        predict_path = os.path.join(self.base_path, "evaluation", "predict")
-        type_csv_path = os.path.join(self.base_path, "evaluation", "validation", "type", "predict", "IoTProber")
-        vendor_csv_path = os.path.join(self.base_path, "evaluation", "validation", "vendor", "predict", "IoTProber")
+        predict_path = PREDICTION_DIR
+        type_csv_path = TYPE_PREDICTION_DIR
+        vendor_csv_path = VENDOR_PREDICTION_DIR
         os.makedirs(predict_path, exist_ok=True)
         os.makedirs(type_csv_path, exist_ok=True)
         os.makedirs(vendor_csv_path, exist_ok=True)
@@ -639,7 +650,7 @@ class IdentificationAgent:
         3. 调用GraphUpdater.update_devices进行图更新
         """
         try:
-            sys.path.insert(0, os.path.join(self.base_path, "graph"))
+            sys.path.insert(0, GRAPH_DIR)
             from update_graph import GraphUpdater
         except ImportError as e:
             logging.warning(f"[GraphUpdate] 无法导入GraphUpdater, 跳过图更新: {e}")
@@ -653,7 +664,7 @@ class IdentificationAgent:
 
         updater = GraphUpdater(llm=self.retrieval_agent.llm)
 
-        predict_path = os.path.join(self.base_path, "evaluation", "predict")
+        predict_path = PREDICTION_DIR
         update_devices = []
 
         for device_name in devices:
@@ -704,7 +715,7 @@ class IdentificationAgent:
                     comprehensive_emb.extend(embeddings_2d[idx][:256])
                 embeddings["comprehensive"] = comprehensive_emb
 
-                # 提取Layer-1特征 (local_used_feature.txt中定义的特征)
+                # 提取Layer-1特征 (config/local_used_features.txt中定义的特征)
                 features = {}
                 for feat_name in self.retrieval_agent.perspective_info_config.get("overall", {}).get("cols", []):
                     if feat_name in fp and fp[feat_name] is not None:
@@ -808,7 +819,7 @@ class IoTDecisionGraph:
         self._agent_system = _AGENT_SYSTEM
         self._agent_human = _AGENT_HUMAN
 
-        self.base_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        self.base_path = ROOT_DIR
         self.enable_first_stage = enable_first_stage
         self.recursion_limit = recursion_limit
 
@@ -836,8 +847,7 @@ class IoTDecisionGraph:
         self._retrieval_tool = configurable_multi_level_retrieval
 
         # ── LLM clients (OpenAI-compatible endpoints) bound with the retrieval tool ──
-        cfg_path = os.path.join(self.base_path, "llm_config.json")
-        with open(cfg_path, "r") as fh:
+        with open(LLM_CONFIG_FILE, "r") as fh:
             cfg = json.load(fh)
         self._gemini_llm = ChatOpenAI(
             api_key=cfg["GEMINI"]["API_KEY"],
@@ -1370,8 +1380,7 @@ def main():
 
     # python agent.py --vector
     if args.vector:
-        log_filename = f"store_vector.log"
-        file_handler = logging.FileHandler(log_filename, mode='a')
+        file_handler = logging.FileHandler(VECTOR_LOG_FILE, mode='a')
         file_handler.setLevel(logging.INFO)
         file_handler.setFormatter(logging.Formatter('%(asctime)s [%(levelname)s] %(message)s'))
         logging.getLogger().addHandler(file_handler)
@@ -1411,4 +1420,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

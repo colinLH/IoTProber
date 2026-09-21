@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """
 Select the best-identifiable demo fingerprints for each of the 11 RAG device
-types (rag_devices.json) and save them under demo/{TYPE}/.
+types (config/rag_devices.json) and save them under demo/{TYPE}/.
 
 "Best" := among candidate fingerprints of the type, the ones the v2 adapter
 classifies CORRECTLY with the highest type confidence, using the exact
@@ -100,7 +100,7 @@ def _ambiguous_ips(types):
 
 def build_candidates():
     """Rich, held-out fingerprints per type from the raw ipraw CSVs (deterministic)."""
-    types = json.load(open(os.path.join(REPO, "rag_devices.json")))["IoT"]
+    types = json.load(open(os.path.join(REPO, "config", "rag_devices.json")))["IoT"]
     os.makedirs(WORK, exist_ok=True)
 
     ipraw_paths = [os.path.join(IPRAW_DIR, f"ipraw_{t}.csv") for t in types]

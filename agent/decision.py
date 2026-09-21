@@ -28,22 +28,31 @@ from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_core.messages import SystemMessage, HumanMessage
 
 from util import load_all_dev_labels, convert_json_from_str
+from path_config import (
+    DECISION_LOG_FILE,
+    LLM_CONFIG_FILE,
+    LOCAL_DATA_DIR,
+    PREDICTION_RESULT_DIR,
+    QUERY_DB_DIR,
+    ROOT_DIR,
+    VALIDATION_DIR,
+)
 
 # ── logging ───────────────────────────────────────────────────────────────────
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(message)s",
-    filename=os.path.join(os.path.dirname(os.path.abspath(__file__)), "decision.log"),
+    filename=DECISION_LOG_FILE,
     filemode="a",
 )
 
 # ── path constants ────────────────────────────────────────────────────────────
-_BASE      = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-_LOCAL_RAW = os.path.join(_BASE, "platform_data", "csv", "local", "1")
-_VAL_PATH  = os.path.join(_BASE, "evaluation", "validation")
-_QDB_PATH  = os.path.join(_BASE, "agent", "query_db")
-_RES_PATH  = os.path.join(_BASE, "evaluation", "predict", "result")
-_CFG_PATH  = os.path.join(_BASE, "llm_config.json")
+_BASE = ROOT_DIR
+_LOCAL_RAW = LOCAL_DATA_DIR
+_VAL_PATH = VALIDATION_DIR
+_QDB_PATH = QUERY_DB_DIR
+_RES_PATH = PREDICTION_RESULT_DIR
+_CFG_PATH = LLM_CONFIG_FILE
 
 # ── module-level state shared with @tool closures ─────────────────────────────
 _dev_labels: List[str] = []

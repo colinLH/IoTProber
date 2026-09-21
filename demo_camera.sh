@@ -31,8 +31,8 @@ for fp in files:
 print(f"loaded {len(entries)} cached local-retrieval entries")
 
 import json as J
-persp_cfg = J.load(open('perspective_info.json'))
-# perspective_info.json: {name: {cols, weight, prompt_info}} or nested — normalize
+persp_cfg = J.load(open('config/perspective_info.json'))
+# config/perspective_info.json: {name: {cols, weight, prompt_info}} or nested — normalize
 def get_pw(cfg):
     out = {}
     for k, v in cfg.items():

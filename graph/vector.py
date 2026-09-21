@@ -38,15 +38,22 @@ from pymilvus import (
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from util import load_all_dev_labels
+from path_config import (
+    PERSPECTIVE_INFO_FILE,
+    PERSPECTIVE_NAME_FILE,
+    RAG_DATA_DIR,
+    RAG_DOMAIN_FILE,
+    RAG_VECTOR_DB_DIR,
+    ROOT_DIR,
+    VECTOR_LOG_FILE,
+)
 
 # ─── 路径配置 / Path config ───────────────────────────────────────────
-BASE_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-LOCAL_PATH = os.path.join(BASE_PATH, "platform_data", "csv", "rag")
-VECTOR_DB_DIR = os.path.join(LOCAL_PATH, "vectorDB")
+BASE_PATH = ROOT_DIR
+LOCAL_PATH = RAG_DATA_DIR
+VECTOR_DB_DIR = RAG_VECTOR_DB_DIR
 MILVUS_DB_FILE = os.path.join(VECTOR_DB_DIR, "milvus.db")
 LOCAL_NPZ_DIR = os.path.join(VECTOR_DB_DIR, "local_npz")
-RAG_DOMAIN_FILE = os.path.join(BASE_PATH, "rag_domain.json")
-PERSPECTIVE_INFO_FILE = os.path.join(BASE_PATH, "perspective_info.json")
 
 EMBEDDING_DIM = 1024
 EMBEDDING_OVERALL_DIM = 1024*11
@@ -64,9 +71,9 @@ logging.basicConfig(
 
 def load_device_names(rag_domain_path: str = RAG_DOMAIN_FILE) -> List[str]:
     """
-    读取所有设备名称。优先使用 util.load_all_dev_labels() (基于 rag_devices.json);
+    读取所有设备名称。优先使用 util.load_all_dev_labels() (基于 config/rag_devices.json);
     若旧的 rag_domain.json 存在则作为兼容回退。
-    Load all device names. Prefer util.load_all_dev_labels() (rag_devices.json);
+    Load all device names. Prefer util.load_all_dev_labels() (config/rag_devices.json);
     fall back to the legacy rag_domain.json only if present.
     """
     devices = load_all_dev_labels()
@@ -285,8 +292,8 @@ def parse_log_for_resume(log_path: str) -> Optional[dict]:
 
 def load_retrieval_perspectives() -> List[str]:
     """
-    从 perspective_info.json 加载参与局部检索的 perspective 名称 (排除 hpart, http, overall)
-    Load retrieval perspective names from perspective_info.json (excluding hpart, http, overall)
+    从 config/perspective_info.json 加载参与局部检索的 perspective 名称 (排除 hpart, http, overall)
+    Load retrieval perspective names from config/perspective_info.json (excluding hpart, http, overall)
     """
     with open(PERSPECTIVE_INFO_FILE, "r", encoding="utf-8") as f:
         cfg = json.load(f)
@@ -479,8 +486,7 @@ def main():
     )
     args = parser.parse_args()
 
-    log_filename = f"store_vector.log"
-    file_handler = logging.FileHandler(log_filename, mode='a')
+    file_handler = logging.FileHandler(VECTOR_LOG_FILE, mode='a')
     file_handler.setLevel(logging.INFO)
     file_handler.setFormatter(logging.Formatter('%(asctime)s [%(levelname)s] %(message)s'))
     logging.getLogger().addHandler(file_handler)
@@ -497,7 +503,7 @@ def main():
     all_devices = load_device_names()
 
     # 获取所有 perspective
-    with open(os.path.join(BASE_PATH, "perspective_name.json"), "r") as f:
+    with open(PERSPECTIVE_NAME_FILE, "r") as f:
         all_perspectives = list(json.load(f).keys())
     
     perspectives = args.perspectives if args.perspectives else all_perspectives
@@ -508,8 +514,7 @@ def main():
     resume_perspective = None
     resume_device = None
     if args.resume:
-        log_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "store_vector.log")
-        interrupted = parse_log_for_resume(log_path)
+        interrupted = parse_log_for_resume(VECTOR_LOG_FILE)
         if interrupted:
             resume_perspective = interrupted["perspective"]  # 中断任务的 perspective
             resume_device = interrupted["device"]  # 中断任务的 device

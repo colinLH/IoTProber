@@ -15,15 +15,23 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 from subprocess import check_output, STDOUT
+from path_config import (
+    LOCAL_USED_FEATURES_FILE,
+    NEW_DEVICES_FILE,
+    PERSPECTIVE_INFO_FILE,
+    PERSPECTIVE_NAME_FILE,
+    RAG_DEVICES_FILE,
+    ROOT_DIR,
+)
 
-BASE_PATH = os.path.dirname(os.path.abspath(__file__))
+BASE_PATH = ROOT_DIR
 
 def load_all_dev_labels():
     """
     Load all device labels that will be configured into the graph
     """
     device_label_list = []
-    label_file_path = os.path.join(BASE_PATH, "rag_devices.json")
+    label_file_path = RAG_DEVICES_FILE
     if not os.path.exists(label_file_path):
         print(f"No device labels file found!")
         return None
@@ -39,7 +47,7 @@ def load_all_dev_labels():
 
 def load_new_dev_labels():
     device_label_list = []
-    label_file_path = os.path.join(BASE_PATH, "new_devices.json")
+    label_file_path = NEW_DEVICES_FILE
     if not os.path.exists(label_file_path):
         print(f"No device labels file found!")
         return None
@@ -54,7 +62,7 @@ def load_new_dev_labels():
 
 def load_perspective_info():
     """加载 perspective 信息 """
-    perspective_info_path = os.path.join(BASE_PATH, "perspective_info.json")
+    perspective_info_path = PERSPECTIVE_INFO_FILE
     if not os.path.exists(perspective_info_path):
         raise FileNotFoundError(f"perspective 信息文件不存在: {perspective_info_path}")
     
@@ -65,7 +73,7 @@ def load_perspective_info():
 
 def load_perspective_cluster_info():
     """加载 perspective 信息 """
-    perspective_info_path = os.path.join(BASE_PATH, "perspective_name.json")
+    perspective_info_path = PERSPECTIVE_NAME_FILE
     if not os.path.exists(perspective_info_path):
         raise FileNotFoundError(f"perspective 信息文件不存在: {perspective_info_path}")
     
@@ -76,7 +84,7 @@ def load_perspective_cluster_info():
 
 def load_local_used_features():
     """加载本地使用的特征列表"""
-    local_feature_path = os.path.join(BASE_PATH, "local_used_feature.txt")
+    local_feature_path = LOCAL_USED_FEATURES_FILE
     if not os.path.exists(local_feature_path):
         raise FileNotFoundError(f"本地特征文件不存在: {local_feature_path}")
 

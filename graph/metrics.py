@@ -3,6 +3,7 @@ import sys
 import time
 
 sys.path.append(os.path.join(os.path.dirname(__file__)))
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import json
 import numpy as np
 import pandas as pd
@@ -11,8 +12,9 @@ from api import ProtocolGraph
 from util import *
 from geopy.geocoders import Nominatim
 from langchain_huggingface import HuggingFaceEmbeddings
+from path_config import EMBEDDING_MODEL_DIR
 
-embedding_model_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "qwen3_embedding_06b")
+embedding_model_path = EMBEDDING_MODEL_DIR
 
 embedding_model = HuggingFaceEmbeddings(model_name=embedding_model_path,
                                         model_kwargs={"device": "cpu"},

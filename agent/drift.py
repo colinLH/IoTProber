@@ -35,16 +35,26 @@ import joblib
 import logging
 import time
 
+import sys
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+from path_config import (
+    AGENT_DIR,
+    CSV_DATA_DIR,
+    DRIFT_OUTPUT_DIR,
+    LOCAL_USED_FEATURES_FILE,
+    PERSPECTIVE_INFO_FILE,
+    ROOT_DIR,
+)
+
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 logger = logging.getLogger(__name__)
 
 # ────────────────────────── Paths ──────────────────────────
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-ROOT_DIR = os.path.dirname(BASE_DIR)
-IPRAW_DIR = os.path.join(ROOT_DIR, "platform_data", "csv")
-FEATURES_FILE = os.path.join(ROOT_DIR, "local_used_features.txt")
-PERSPECTIVE_FILE = os.path.join(ROOT_DIR, "perspective_info.json")
-DRIFT_OUTPUT_DIR = os.path.join(ROOT_DIR, "drift_data", "autoencoder_drift")
+BASE_DIR = AGENT_DIR
+IPRAW_DIR = CSV_DATA_DIR
+FEATURES_FILE = LOCAL_USED_FEATURES_FILE
+PERSPECTIVE_FILE = PERSPECTIVE_INFO_FILE
 
 DEVICE_TYPES = [
     "BUILDING_AUTOMATION", "CAMERA", "MEDIA_SERVER", "MEDICAL",
@@ -70,7 +80,7 @@ DRIFT_SENSITIVITY = {
     "certificate": 0.3,
 }
 
-# ── Column lists (25 features from local_used_features.txt) ──
+# ── Column lists (25 features from config/local_used_features.txt) ──
 USE_COLS = [
     "ip",
     "as-asn", "as-name", "as-bgp_prefix", "as-country_code",

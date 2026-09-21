@@ -1,6 +1,6 @@
 # IoTProber Demo — 11 类设备识别最小展示
 
-每类设备（`rag_devices.json` 的 11 个 RAG 类型）各 3 个**识别效果最好**的真实指纹。
+每类设备（`config/rag_devices.json` 的 11 个 RAG 类型）各 3 个**识别效果最好**的真实指纹。
 候选池 40/类，用 v2 adapter 走生产推理链路
 （`UnseenDeviceDetector._build_aligned_prompt → _generate_classification → _classification_novelty_result`）
 打分，取「类型判对 + 类型置信度最高」的 Top-3（同类内优先厂商不重复）。

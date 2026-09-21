@@ -10,6 +10,7 @@ from google import genai
 from openai import OpenAI
 from google.genai import types
 from util import *
+from path_config import LLM_CONFIG_FILE
 import logging
 
 def extract_system_and_user_messages(messages):
@@ -43,11 +44,10 @@ class LLM:
     
     def load_llm_config(self):
         """加载 LLM 配置文件 """
-        config_path = os.path.join(self.base_path, "llm_config.json")
-        if not os.path.exists(config_path):
-            raise FileNotFoundError(f"配置文件不存在: {config_path}")
+        if not os.path.exists(LLM_CONFIG_FILE):
+            raise FileNotFoundError(f"配置文件不存在: {LLM_CONFIG_FILE}")
         
-        with open(config_path, "r") as f:
+        with open(LLM_CONFIG_FILE, "r") as f:
             config = json.load(f)
         
         return config
