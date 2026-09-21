@@ -34,6 +34,8 @@ TOP_K = 3
 sys.path.insert(0, REPO)
 sys.path.insert(0, os.path.join(REPO, "agent"))
 
+from path_config import LOCAL_VECTOR_DB_DIR  # noqa: E402
+
 spec = importlib.util.spec_from_file_location("finetune_original", ORIG_FT)
 ft = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(ft)
@@ -223,7 +225,7 @@ def run_merge():
     # CAMERA-only local retrieval neighbours (production MultiLevelRetrieval
     # over the built npz store; other types have no npz store on this box)
     neighbours = {}
-    npz_dir = os.path.join(REPO, "platform_data/csv/local/1/vectorDB/local_npz")
+    npz_dir = os.path.join(LOCAL_VECTOR_DB_DIR, "local_npz")
     if os.path.exists(os.path.join(npz_dir, "CAMERA_embeddings.npy")):
         try:
             from retrieval import MultiLevelRetrieval

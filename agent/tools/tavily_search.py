@@ -21,10 +21,16 @@ Tavily 网页搜索工具
    - 包含 [tavily_web_search] 的列表，方便一行注册到 agent。
    - 示例: agent = create_react_agent(llm, tools=TAVILY_TOOLS)
 
-环境变量
+配置来源
 --------
-TAVILY_API_KEY — 必须在 .env 或系统环境变量中设置。
+TAVILY_API_KEY 按以下顺序解析（与其余 API key 统一，不再需要第二份配置）：
+  1. 环境变量 / .env 中的 TAVILY_API_KEY
+  2. config/llm_config.local.json（优先）或 config/llm_config.json 的 "TAVILY": {"API_KEY": ...}
+     —— 占位符 "YOUR_API_KEY" 视为未配置
 """
+
+import json
+import sys
 
 import os
 from typing import Any
@@ -38,13 +44,34 @@ load_dotenv()
 _client: TavilyClient | None = None
 
 
+_REPO_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+if _REPO_ROOT not in sys.path:
+    sys.path.append(_REPO_ROOT)
+
+
+def _resolve_api_key() -> str:
+    """env/.env first, then the shared config/llm_config*.json ("TAVILY")."""
+    key = os.getenv("TAVILY_API_KEY")
+    if key:
+        return key.strip()
+    try:
+        from path_config import LLM_CONFIG_FILE
+        with open(LLM_CONFIG_FILE, encoding="utf-8") as fh:
+            key = (json.load(fh).get("TAVILY") or {}).get("API_KEY", "")
+    except Exception:
+        key = ""
+    key = (key or "").strip()
+    return "" if key.startswith("YOUR_") else key
+
+
 def _get_client() -> TavilyClient:
     global _client
     if _client is None:
-        api_key = os.getenv("TAVILY_API_KEY")
+        api_key = _resolve_api_key()
         if not api_key:
             raise EnvironmentError(
-                "TAVILY_API_KEY not found. Please set it in your .env file or system environment variables."
+                "TAVILY_API_KEY not configured. Set it in the environment/.env, or put "
+                '{"TAVILY": {"API_KEY": "tvly-..."}} into config/llm_config.local.json.'
             )
         _client = TavilyClient(api_key=api_key)
     return _client
