@@ -5,7 +5,7 @@
 （`UnseenDeviceDetector._build_aligned_prompt → _generate_classification → _classification_novelty_result`）
 打分，取「类型判对 + 类型置信度最高」的 Top-3（同类内优先厂商不重复）。
 
-## 候选池的三重排除（2026-09-20 审计后加入）
+## 候选池的三重排除
 
 排名前必须知道 demo 数据是从什么池子里选的：
 
