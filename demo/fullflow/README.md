@@ -21,14 +21,6 @@ records for all three retrieval levels. The evaluator reports completion rate,
 accuracy among completed cases, and end-to-end accuracy over every selected
 case; unavailable evidence therefore cannot disappear from a metric denominator.
 
-## Invalidated legacy results
-
-Results generated before retrieval schema `2026-09-25-v3` are not valid
-evaluation measurements. Those runs could retrieve the query IP itself, exposed
-the true-type filename to the decision tool, interpreted scores greater than one
-as cosine similarity, and treated missing community reports as a synthetic 0.5
-match. They must not be quoted as IoTProber accuracy.
-
 ## Run
 
 ```bash
