@@ -90,12 +90,28 @@ print('torch', torch.__version__, 'cuda', torch.cuda.is_available())"
 
 ### 2.2 Data and models
 
-1. Download the Zenodo record (Section 1.1) and unpack it. Place the files at the
-   destinations listed in Section 1.2. The data root can be anywhere; tell the code where it is:
+1. Download the `platform_data/` and `evaluation/` directories directly from the Hugging
+   Face dataset [IoTProber/raw_dataset](https://huggingface.co/datasets/IoTProber/raw_dataset/tree/main)
+   into the repository root. The same files are also in the Zenodo record (Section 1.1).
+   `hf` is installed with `huggingface_hub` by `requirements.txt`, and no login is needed.
+   `platform_data/` is several hundred GB, so check free disk space first.
 
    ```bash
-   export IOTPROBER_CSV_DATA_DIR=/path/to/platform_data/csv   # contains rag/ all/ label/
+   hf download IoTProber/raw_dataset --repo-type dataset --include "platform_data/*" --local-dir .
+   hf download IoTProber/raw_dataset --repo-type dataset --include "evaluation/*" --local-dir .
    ```
+
+   Then point the code at the data root and create the local-retrieval alias that
+   `path_config.py` expects (`csv/local/1` is the knowledge base in `csv/rag`):
+
+   ```bash
+   export IOTPROBER_CSV_DATA_DIR=$PWD/platform_data/csv   # contains rag/ all/ label/
+   mkdir -p platform_data/csv/local && ln -sfn ../rag platform_data/csv/local/1
+   ```
+
+   **Expected output:** `platform_data/csv/{all,label,rag}/` and
+   `evaluation/{validation,unseen,drift}/` exist under the repository root. Step 3 checks
+   their contents.
 2. Download the two models in Section 1.2 into the repository root.
 3. Verify that the data matches Table 1 of the paper:
 

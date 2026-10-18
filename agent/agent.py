@@ -52,6 +52,14 @@ from path_config import (
     VENDOR_PREDICTION_DIR,
 )
 
+# 一阶段 unseen adapter 的默认路径: gate-release 的 v2 最终版。
+# 此前默认 None — 不传路径的调用方会拿到零样本裸底模, 一阶段分类器
+# 形同虚设。所有入口 (bench / demo / 裸调用) 现在都默认吃到微调权重;
+# 显式传 unseen_adapter_path 仍可覆盖。
+DEFAULT_UNSEEN_ADAPTER_PATH = os.path.join(
+    ROOT_DIR, "evaluation", "unseen", "llama3", "results_v2", "final_model"
+)
+
 
 def _atomic_json_dump(path: str, value: Any) -> None:
     os.makedirs(os.path.dirname(path), exist_ok=True)
@@ -877,7 +885,9 @@ class IoTDecisionGraph:
 
         # first-stage detector configuration (lazy, fail-safe)
         self._unseen_model_path = unseen_model_path
-        self._unseen_adapter_path = unseen_adapter_path
+        self._unseen_adapter_path = (
+            unseen_adapter_path or DEFAULT_UNSEEN_ADAPTER_PATH
+        )
         self._unseen_load_in_4bit = unseen_load_in_4bit
         self._drift_model_dir = drift_model_dir
         self._gpu = gpu

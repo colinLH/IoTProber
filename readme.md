@@ -203,10 +203,20 @@ python acquire_data.py --collect -collect_new --filter_new --filter_old --conver
 python acquire_data.py --drift
 ```
 
-Alternatively, download the prepared dataset from the
-[IoTProber Hugging Face repository](https://huggingface.co/datasets/IoTProber)
-and place its large assets under `evaluation/`, `platform_data/`, and
-`drift_data/`.
+Alternatively, download the prepared `platform_data/` and `evaluation/` directories
+directly from the Hugging Face dataset
+[IoTProber/raw_dataset](https://huggingface.co/datasets/IoTProber/raw_dataset/tree/main)
+into the repository root (`hf` is installed with `huggingface_hub` by `requirements.txt`;
+`platform_data/` is several hundred GB, so check free disk space first):
+
+```bash
+hf download IoTProber/raw_dataset --repo-type dataset --include "platform_data/*" --local-dir .
+hf download IoTProber/raw_dataset --repo-type dataset --include "evaluation/*" --local-dir .
+
+# Point the code at the downloaded data root and create the local-retrieval alias
+export IOTPROBER_CSV_DATA_DIR=$PWD/platform_data/csv
+mkdir -p platform_data/csv/local && ln -sfn ../rag platform_data/csv/local/1
+```
 
 ```bash
 # 4. Build the RAG hierarchical graph + vector store (Data Plane).

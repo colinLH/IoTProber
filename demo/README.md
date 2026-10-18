@@ -75,7 +75,7 @@ cd demo && $EL app.py
 #      · /dev/shm/ipraw/ipraw_{TYPE}.csv  ← Raw fingerprints for 11 device types,
 #        approximately 8.4 GB in tmpfs and lost after a reboot.
 #        Rebuild by downloading with:
-#        hf_hub_download('IoTProber/raw_dataset', 'platform_data/rag/ipraw_files.tar.gz',
+#        hf_hub_download('IoTProber/raw_dataset', 'platform_data/csv/rag/ipraw_files.tar.gz',
 #                        repo_type='dataset')
 #        and then extracting the archive to /dev/shm/ipraw.
 #      · /dev/shm/demo_select             ← Intermediate candidates.json files,
