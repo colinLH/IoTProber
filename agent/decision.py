@@ -430,7 +430,10 @@ def normalize_decision(parsed: Dict[str, Any], llm_name: str, raw_output: str) -
     parsed["type_confidence"] = bounded(parsed.get("type_confidence", legacy_confidence))
     parsed["vendor_confidence"] = bounded(parsed.get("vendor_confidence", legacy_confidence))
     parsed["confidence"] = parsed["type_confidence"]  # backward-compatible alias
-    parsed["device_type"] = str(parsed["device_type"]).upper().strip()
+    # 规范化类型串: 折叠空白、空格/连字符统一为下划线。bench_100 里出现过
+    # 'BUILDING AUTOMATION' 变体被当成独立类型造成假错。
+    _type_str = " ".join(str(parsed["device_type"]).split()).upper().strip()
+    parsed["device_type"] = _type_str.replace(" ", "_").replace("-", "_")
     parsed["vendor"] = str(parsed.get("vendor", "Unknown"))
     parsed["device_type_reason"] = str(parsed.get("device_type_reason", ""))
     parsed["vendor_reason"] = str(parsed.get("vendor_reason", ""))

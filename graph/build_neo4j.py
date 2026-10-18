@@ -1,5 +1,5 @@
 """Optimized Neo4j hierarchical graph builder using batch UNWIND Cypher queries."""
-import os, sys, time, logging
+import os, sys, time, logging, hashlib
 sys.path.append(os.path.join(os.path.dirname(__file__)))
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import pandas as pd
@@ -11,6 +11,7 @@ from path_config import (
     LOCAL_USED_FEATURES_FILE,
     ROOT_DIR,
 )
+from util import load_neo4j_config
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s [%(levelname)s] %(message)s')
 log = logging.getLogger(__name__)
@@ -19,7 +20,6 @@ BASE = ROOT_DIR
 DATA = LOCAL_DATA_DIR
 COMM = LOCAL_SINGLE_COMMUNITY_DIR
 OVERALL = LOCAL_OVERALL_COMMUNITY_DIR
-SKIP = {"ALARM", "CONTROLLER"}
 BATCH = 5000
 
 def load_features():
@@ -28,7 +28,20 @@ def load_features():
 
 def discover_devs():
     return [f[6:-4] for f in sorted(os.listdir(DATA))
-            if f.startswith("ipraw_") and f.endswith(".csv") and f[6:-4] not in SKIP]
+            if f.startswith("ipraw_") and f.endswith(".csv")]
+
+def _next_cluster_id(g, comprehensive):
+    """First free cluster_id of the Layer-2 (shared) or Layer-3 counter."""
+    cond = "=" if comprehensive else "<>"
+    return g.run(f"MATCH (c:Cluster) WHERE c.perspective {cond} 'comprehensive' "
+                 "RETURN coalesce(max(c.cluster_id), -1) + 1 AS n").data()[0]["n"]
+
+def _drop_clusters(g, perspective, dev):
+    """Incremental mode: remove a device type's existing clusters of one perspective."""
+    n = g.run("MATCH (c:Cluster {perspective:$p, device_type:$d}) DETACH DELETE c RETURN count(*) AS n",
+              p=perspective, d=dev).data()[0]["n"]
+    if n:
+        log.info(f"[incremental] removed {n} existing {perspective} clusters of {dev}")
 
 def discover_perspectives():
     return [d for d in sorted(os.listdir(COMM)) if d.startswith("embedding_") and os.path.isdir(os.path.join(COMM, d))]
@@ -63,15 +76,24 @@ def build_layer1(g, devs, features):
         for i in range(0, len(rows), BATCH):
             g.run("UNWIND $rows AS r MERGE (d:Device {ip:r.ip, device_type:r.device_type})", rows=rows[i:i+BATCH])
 
-        # Per-feature: MERGE Feature nodes + relationships
+        # Per-feature: MERGE Feature nodes + relationships.
+        # Feature MERGE key is (feature_name, value_key) where value_key is a
+        # 16-hex digest of the value: raw fingerprint values reach ~400 KB and
+        # exceed Neo4j's btree index limit (~8 KB), so an index on the raw
+        # value can never come ONLINE and every MERGE degrades to a label
+        # scan (CAMERA alone took 6.8 h). The full value is still stored as a
+        # plain property for consumers that read it.
         total_rels = 0
         for feat in feats:
-            fr = [{"ip": r["ip"], "value": r[feat]} for _, r in df.iterrows() if r[feat]]
+            fr = [{"ip": r["ip"], "value_key": hashlib.md5(r[feat].encode("utf-8")).hexdigest()[:16],
+                   "value": r[feat]}
+                  for _, r in df.iterrows() if r[feat]]
             total_rels += len(fr)
             rt = rel_type(feat)
             for i in range(0, len(fr), BATCH):
                 g.run(f"UNWIND $rows AS r MATCH (d:Device {{ip:r.ip}}) "
-                      f"MERGE (f:Feature {{feature_name:$feat, value:r.value}}) "
+                      f"MERGE (f:Feature {{feature_name:$feat, value_key:r.value_key}}) "
+                      f"ON CREATE SET f.value = r.value "
                       f"MERGE (d)-[:{rt}]-(f)", rows=fr[i:i+BATCH], feat=feat)
 
         el = time.time() - td
@@ -86,21 +108,37 @@ def build_layer1(g, devs, features):
                   sum(v["rels"] for v in stats.values()), f'{tt:.1f}'])
     return stats, tt
 
-def build_layer2(g, devs, perspectives):
+def _read_ip_cluster(path):
+    """Read (ip, cluster) columns; skip files that are missing, empty, or
+    malformed (a few source PCA exports ship corrupted — e.g. POWER_METER's
+    overall file is all whitespace). Returns None when unusable."""
+    if not os.path.exists(path) or os.path.getsize(path) < 40:
+        log.warning("[skip] unusable cluster file: %s", path)
+        return None
+    try:
+        return pd.read_csv(path, usecols=["ip", "cluster"])
+    except (ValueError, pd.errors.ParserError, pd.errors.EmptyDataError) as exc:
+        log.warning("[skip] malformed cluster file %s: %s", path, exc)
+        return None
+
+
+def build_layer2(g, devs, perspectives, incremental=False):
     log.info("=== Layer 2 ===")
     t0 = time.time()
     stats = {}
-    cc = 0
+    cc = _next_cluster_id(g, comprehensive=False) if incremental else 0
     for persp in perspectives:
-        pn = persp[11:]
+        pn = persp[10:]  # strip "embedding_", not one char more
         pdir = os.path.join(COMM, persp)
         tp = time.time()
         vc = oc = ec = 0
         for dev in devs:
             path = os.path.join(pdir, f"ipraw_{dev}_embedding_{pn}_pca.csv")
-            if not os.path.exists(path):
+            df = _read_ip_cluster(path)
+            if df is None:
                 continue
-            df = pd.read_csv(path, usecols=["ip", "cluster"])
+            if incremental:
+                _drop_clusters(g, pn, dev)
             df["ip"] = df["ip"].astype(str).str.strip()
             df["cluster"] = df["cluster"].astype(int)
             dv = df[df["cluster"] != -1]
@@ -130,16 +168,18 @@ def build_layer2(g, devs, perspectives):
                   sum(v["total"] for v in stats.values()), sum(v["edges"] for v in stats.values()), f'{tt:.1f}'])
     return stats, tt
 
-def build_layer3(g, devs):
+def build_layer3(g, devs, incremental=False):
     log.info("=== Layer 3 ===")
     t0 = time.time()
     stats = {}
-    cc = 0
+    cc = _next_cluster_id(g, comprehensive=True) if incremental else 0
     for dev in devs:
         path = os.path.join(OVERALL, f"ipraw_{dev}_embedding_overall_pca.csv")
-        if not os.path.exists(path):
+        df = _read_ip_cluster(path)
+        if df is None:
             continue
-        df = pd.read_csv(path, usecols=["ip", "cluster"])
+        if incremental:
+            _drop_clusters(g, "comprehensive", dev)
         df["ip"] = df["ip"].astype(str).str.strip()
         df["cluster"] = df["cluster"].astype(int)
         dv = df[df["cluster"] != -1]
@@ -191,15 +231,29 @@ def print_final(g):
     print("="*60)
 
 if __name__ == "__main__":
-    g = Graph(NEO4J_URL := "neo4j://localhost:7687", auth=(NEO4J_USER := "neo4j", NEO4J_PASS := "YOUR_NEO4J_PASSWORD"))
+    import argparse
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--devices", nargs="+", default=None,
+                        help="Incremental mode: (re)build only these device types without clearing "
+                             "the database; their existing clusters of the selected layers are replaced")
+    parser.add_argument("--layers", nargs="+", type=int, choices=[1, 2, 3], default=[1, 2, 3])
+    args = parser.parse_args()
+    neo4j = load_neo4j_config()
+    g = Graph(neo4j["uri"], auth=(neo4j["user"], neo4j["password"]))
     feats = load_features()
-    devs = discover_devs()
+    incremental = args.devices is not None
+    devs = args.devices if incremental else discover_devs()
     persps = discover_perspectives()
-    log.info(f"Devices: {devs}\nPerspectives: {persps}\nFeatures: {len(feats)}")
-    clear_db(g)
-    _, t1 = build_layer1(g, devs, feats)
-    _, t2 = build_layer2(g, devs, persps)
-    _, t3 = build_layer3(g, devs)
+    log.info(f"Devices: {devs}\nPerspectives: {persps}\nFeatures: {len(feats)}\nIncremental: {incremental}")
+    if not incremental:
+        clear_db(g)
+    t1 = t2 = t3 = 0.0
+    if 1 in args.layers:
+        _, t1 = build_layer1(g, devs, feats)
+    if 2 in args.layers:
+        _, t2 = build_layer2(g, devs, persps, incremental)
+    if 3 in args.layers:
+        _, t3 = build_layer3(g, devs, incremental)
     print(f"\nTotal build time: Layer1={t1:.1f}s  Layer2={t2:.1f}s  Layer3={t3:.1f}s  Grand={t1+t2+t3:.1f}s")
     print_final(g)
     log.info("Done!")

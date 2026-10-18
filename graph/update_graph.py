@@ -43,7 +43,12 @@ import joblib
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from util import load_perspective_info, load_perspective_cluster_info, load_local_used_features
+from util import (
+    load_local_used_features,
+    load_neo4j_config,
+    load_perspective_cluster_info,
+    load_perspective_info,
+)
 from llm import LLM
 from path_config import (
     ALL_DATA_DIR,
@@ -70,10 +75,6 @@ MINOR_REVISION = RAG_MINOR_REVISION_DIR
 SINGLE_DIR = os.path.join(MINOR_REVISION, "single")
 OVERALL_DIR = os.path.join(MINOR_REVISION, "embedding_overall")
 
-NEO4J_URL = "neo4j://localhost:7687"
-NEO4J_USER = "neo4j"
-NEO4J_PASS = "YOUR_NEO4J_PASSWORD"
-NEO4J_UPDATED_URL = "neo4j://localhost:7688"
 
 PCA_COLS = [f"pca{i}" for i in range(1, 257)]
 PERSPECTIVES = [
@@ -365,7 +366,8 @@ class GraphUpdater:
         else:
             try:
                 from py2neo import Graph
-                self.db = Graph(NEO4J_URL, auth=(NEO4J_USER, NEO4J_PASS))
+                neo4j = load_neo4j_config()
+                self.db = Graph(neo4j["uri"], auth=(neo4j["user"], neo4j["password"]))
             except Exception as e:
                 log.warning("Neo4j connection failed: %s – operating in no-DB mode", e)
                 self.db = None
@@ -1117,8 +1119,8 @@ class GraphUpdater:
 
     # ── Test-update entry point ─────────────────────────────────────
 
-    def run_test_update(self, devices=None, neo4j_url=NEO4J_UPDATED_URL,
-                        neo4j_user="neo4j", neo4j_pass="YOUR_NEO4J_PASSWORD"):
+    def run_test_update(self, devices=None, neo4j_url=None,
+                        neo4j_user=None, neo4j_pass=None):
         """
         Run graph update for test set devices on neo4j_updated (port 7688).
         Collects metrics: update frequency, Layer-1 time, cluster summary time + LLM cost,
@@ -1131,11 +1133,17 @@ class GraphUpdater:
         All results are saved to graph/update/.
 
         :param devices: list of device types to run (default: all 11)
-        :param neo4j_url: Neo4j connection URL
-        :param neo4j_user: Neo4j username
-        :param neo4j_pass: Neo4j password
+        :param neo4j_url: Neo4j connection URL (default: NEO4J.UPDATED_URI in config)
+        :param neo4j_user: Neo4j username (default: NEO4J.USER in config)
+        :param neo4j_pass: Neo4j password (default: NEO4J.PASSWORD in config)
         """
         from py2neo import Graph as Py2neoGraph
+
+        if neo4j_url is None or neo4j_user is None or neo4j_pass is None:
+            neo4j = load_neo4j_config()
+            neo4j_url = neo4j_url or neo4j["updated_uri"]
+            neo4j_user = neo4j_user or neo4j["user"]
+            neo4j_pass = neo4j_pass or neo4j["password"]
 
         if devices is None:
             devices = ALL_TEST_DEVICES

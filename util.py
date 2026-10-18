@@ -16,6 +16,7 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 from subprocess import check_output, STDOUT
 from path_config import (
+    LLM_CONFIG_FILE,
     LOCAL_USED_FEATURES_FILE,
     NEW_DEVICES_FILE,
     PERSPECTIVE_INFO_FILE,
@@ -25,6 +26,24 @@ from path_config import (
 )
 
 BASE_PATH = ROOT_DIR
+
+
+def load_neo4j_config():
+    """Neo4j connection settings from the "NEO4J" section of
+    config/llm_config.local.json (falls back to the committed template)."""
+    with open(LLM_CONFIG_FILE, "r", encoding="utf-8") as f:
+        section = json.load(f).get("NEO4J") or {}
+    password = section.get("PASSWORD", "")
+    if not password or password.startswith("YOUR_"):
+        raise RuntimeError(
+            f"Neo4j password is not configured: set NEO4J.PASSWORD in {LLM_CONFIG_FILE}"
+        )
+    return {
+        "uri": section.get("URI", "neo4j://localhost:7687"),
+        "updated_uri": section.get("UPDATED_URI", "neo4j://localhost:7688"),
+        "user": section.get("USER", "neo4j"),
+        "password": password,
+    }
 
 def load_all_dev_labels():
     """

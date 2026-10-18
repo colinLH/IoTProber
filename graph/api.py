@@ -302,7 +302,8 @@ class ProtocolGraph:
 
 
 if __name__ == "__main__":
-    # graph_db_url = "neo4j://localhost:7687"
-    graph_db_url = "http://localhost:7474"
-    graph = ProtocolGraph(graph_db_url, "neo4j", "YOUR_NEO4J_PASSWORD")
+    sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    from util import load_neo4j_config
+    neo4j = load_neo4j_config()
+    graph = ProtocolGraph(neo4j["uri"], neo4j["user"], neo4j["password"])
     count = graph.Count()

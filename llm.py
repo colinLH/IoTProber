@@ -70,6 +70,15 @@ class LLM:
             api_key=self.llm_config["OPENAI"]["API_KEY"],
             base_url=self.llm_config["OPENAI"]["BASE_URL"]
         )
+        # GLM via BigModel's Anthropic-compatible endpoint (separate balance
+        # from the micuapi relay — used when the relay's quota is exhausted)
+        if "GLM" in self.llm_config:
+            self.glm_client = anthropic.Anthropic(
+                api_key=self.llm_config["GLM"]["API_KEY"],
+                base_url=self.llm_config["GLM"]["BASE_URL"]
+            )
+        else:
+            self.glm_client = None
 
     def get_llm_client(self, llm):
         if llm == "DEEPSEEK":
@@ -80,6 +89,8 @@ class LLM:
             return self.gemini_client
         elif llm == "OPENAI":
             return self.openai_client
+        elif llm == "GLM" and self.glm_client is not None:
+            return self.glm_client
         else:
             return None
     
@@ -122,7 +133,8 @@ class LLM:
         return all_response_content
 
     def chat_with_llm(self, llm, messages, whether_json: bool = False,
-                      return_usage: bool = False, max_tokens: int = 1024):
+                      return_usage: bool = False, max_tokens: int = 1024,
+                      thinking: str = None):
         """
         1. 使用Anthropic SDK调用Claude Sonnet 4.5进行问答
         
@@ -147,6 +159,9 @@ class LLM:
                 temperature=1.0,
                 max_tokens=max_tokens,
                 # extra_body={"thinking": {"type": "enabled"}},
+                # DeepSeek-V4 thinks by default; thinking="disabled" keeps the
+                # whole max_tokens budget for the answer.
+                extra_body={"thinking": {"type": thinking}} if thinking else None,
                 response_format={"type": "json_object"} if whether_json else None
             )
 
@@ -218,6 +233,40 @@ class LLM:
                 return result, usage
             return result
         
+        elif llm == "GLM":
+            # BigModel anthropic-compatible; retrieval prompts reach ~60K
+            # tokens, so keep a generous output budget. The endpoint rate-
+            # limits bursty concurrent callers (429), which silently zeroed
+            # community matching at 4 workers — retry with backoff.
+            import time as _time
+            response = None
+            for attempt in range(5):
+                try:
+                    response = client.messages.create(
+                        model=model,
+                        messages=messages,
+                        max_tokens=max_tokens
+                    )
+                    break
+                except Exception as _exc:
+                    if attempt == 4 or "429" not in str(_exc):
+                        raise
+                    _time.sleep(2 ** attempt + 1)
+            text_blocks = [b for b in response.content if hasattr(b, 'text')]
+            raw_text = text_blocks[0].text if text_blocks else ""
+            if whether_json:
+                try:
+                    result = convert_json_from_str(raw_text)
+                except Exception:
+                    result = {"error": "JSON parse failed", "raw": raw_text[:500]}
+            else:
+                result = raw_text
+            if return_usage:
+                usage = {"prompt_tokens": response.usage.input_tokens,
+                         "completion_tokens": response.usage.output_tokens}
+                return result, usage
+            return result
+
         else:
             raise ValueError(f"不支持的 LLM: {llm}")
             

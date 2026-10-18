@@ -83,9 +83,12 @@ uv venv --python 3.11 --seed .venv-iotprober
 update) and the `graph_neighbor` retrieval feature in `agent/retrieval.py` (lazy,
 fail-safe — the agent degrades gracefully without it):
 
-- Community Edition **4.4.x** on `neo4j://localhost:7687`, auth `neo4j / YOUR_NEO4J_PASSWORD`
-  (matches the credentials used across `graph/` and `agent/retrieval.py`).
-- Set the password before first start: `bin/neo4j-admin set-initial-password YOUR_NEO4J_PASSWORD`.
+- Community Edition **4.4.x** on `neo4j://localhost:7687`. Connection settings are
+  read by every `graph/` script and `agent/retrieval.py` from the `NEO4J` section
+  (`URI`, `UPDATED_URI`, `USER`, `PASSWORD`) of the ignored
+  `config/llm_config.local.json`; no credential is hard-coded.
+- Set the password before first start: `bin/neo4j-admin set-initial-password <your-password>`,
+  and put the same value in `NEO4J.PASSWORD`.
 - On JDK 17, append to `conf/neo4j.conf`:
   `dbms.jvm.additional=--add-opens=java.base/java.nio=ALL-UNNAMED` (plus
   `sun.nio.ch`, `java.lang`, `java.util`, `java.lang.reflect`).
@@ -120,7 +123,7 @@ The `Qwen3-Embedding-0.6B` model is required for generating 1024-dim fingerprint
 |---------|---------|--------|
 | **Censys** (Search or Platform API) | IP fingerprint data collection | `acquire_data.py` constructor args |
 | **Shodan** | Alternative/supplementary fingerprint data collection | `acquire_data.py::ShodanData`, API key in `search_config.json` |
-| **Neo4j** | Hierarchical device knowledge graph | `bolt://localhost:7687`, default user `neo4j`, password `<Neo4j password>` (see `graph/build.py`) |
+| **Neo4j** | Hierarchical device knowledge graph | `neo4j://localhost:7687`, credentials in `config/llm_config.local.json` → `NEO4J` |
 | **Milvus Lite** | Local ANN vector search | Auto-created at `platform_data/csv/local/1/vectorDB/milvus.db` |
 | **Claude** (Anthropic) | LLM reasoning & decision | `config/llm_config.json` → `CLAUDE` |
 | **DeepSeek** | LLM reasoning & decomposition | `config/llm_config.json` → `DEEPSEEK` |
@@ -458,11 +461,19 @@ IoTProber/
 ### `agent/drift.py` — Concept Drift Detection
 - **Class**: `PerspectiveAwareCAE` (PACA) + `DriftDetector` (single-device inference)
 - Detects **in-class concept drift**: same label but shifted feature space (e.g., a camera vendor silently updates firmware).
-- Uses perspective-weighted reconstruction loss + contrastive loss:
-  - Non-critical perspectives (`whois`, `as`, `dns`, `sd`, `htags`, `body`) → high weight → their reconstruction error signals drift.
-  - Critical perspectives (`sw`, `hw`, `os`, `certificate`) → low weight → their change more likely indicates a new device/vendor.
-- Detection rule (paper): score `S(x)=Σ_p α_p·mean((x−x̂)²)`; robust threshold `τ = median(S_ref) + γ·MAD(S_ref)` (`γ=3.5`); drift iff `S(x) > τ`; per-perspective z-scores give interpretable attribution.
-- `run_drift_detection()` trains PACA and persists `paca_model.pt` + `paca_artifacts.pkl` (vectorizers/scaler/threshold); `DriftDetector.detect_query_device(fingerprint)` scores a single queried device for the first-stage gate. Outputs to `drift_data/autoencoder_drift/`.
+- Uses bounded, OOV-safe hashed features (128 dimensions per perspective), perspective-weighted reconstruction, and latent-space contrastive loss. The authoritative sensitivity weights come directly from `config/perspective_info.json` and are frozen into each artifact.
+- Training removes cross-type IP conflicts and performs deterministic IP-grouped `70/10/10/10` train/validation/calibration/test splitting, so no IP can leak across sets. Class-balanced sampling prevents CAMERA/ROUTER/NAS from dominating minority device types.
+- Detection score is `S(x)=Σ_p α_p·mean((x−x̂)²)`. Thresholds are device-type-conditional 99th percentiles from the held-out clean calibration split; unknown types use a held-out global threshold. The unseen-stage predicted type is passed to `DriftDetector.detect_query_device()` for threshold selection.
+- `run_drift_training_v2()` persists an internally consistent best checkpoint, preprocessing/scoring contract, thresholds, split manifest, clean-test metrics, and synthetic shift stress tests under `drift_data/autoencoder_drift_v2/`. The production default path points to this v2 directory; legacy artifacts remain available in `drift_data/autoencoder_drift/`.
+
+Eight-GPU retraining (use the project environment because the system Python may load an incompatible NCCL runtime):
+
+```bash
+DRIFT_NUM_WORKERS=8 PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True \
+  /root/anaconda3/envs/iotprober/bin/python agent/drift.py \
+  --data_dir /mnt/zwj_ckpt/iotprober/platform_data/csv/rag \
+  --output_dir drift_data/autoencoder_drift_v2 --device cuda
+```
 
 ### `agent/unseen.py` — Unseen Device Detection
 - **Class**: `UnseenDeviceDetector`

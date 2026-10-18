@@ -1227,7 +1227,12 @@ class IoTDecisionGraph:
             drift_res = {"available": False}
         else:
             try:
-                drift_res = drift_det.detect_query_device(state["fingerprint"])
+                predicted_type = (
+                    first_stage.get("unseen", {}).get("predicted_type") or None
+                )
+                drift_res = drift_det.detect_query_device(
+                    state["fingerprint"], device_type=predicted_type
+                )
             except Exception as exc:
                 logging.warning("Drift detection failed for %s: %s", state.get("ip"), exc)
                 drift_res = {"error": str(exc)}
@@ -1246,7 +1251,41 @@ class IoTDecisionGraph:
             for k, v in trimmed.items()
             if k != "ip" and v is not None and str(v) not in ("nan", "None", "")
         }
+        # 端口硬信号: service-distribution 里埋着几百个端口的噪声, 特征端口
+        # (BACnet/Modbus/RTSP/JetDirect…)提炼成独立字段, 让决策 LLM 无法漏看
+        signals = IoTDecisionGraph._port_signals(fp.get("service-distribution"))
+        if signals:
+            display["characteristic_port_signals"] = signals
         return json.dumps(display, indent=2, ensure_ascii=False)
+
+    # 特征端口 → 类型倾向。只收几乎无歧义的协议口; 云主机会随机开几百个
+    # 高位端口, 所以不能用"端口数量"之类的弱信号。
+    _CHARACTERISTIC_PORTS = {
+        "47808": "BACnet → SCADA/CONTROLLER/BUILDING_AUTOMATION",
+        "502": "Modbus-TCP → SCADA/CONTROLLER/POWER_METER",
+        "20000": "DNP3 → SCADA",
+        "554": "RTSP → CAMERA/NVR",
+        "9100": "JetDirect → PRINTER",
+        "631": "IPP → PRINTER",
+        "515": "LPD → PRINTER",
+        "445": "SMB → NAS/ROUTER",
+        "2049": "NFS → NAS",
+        "5060": "SIP → ALARM/VOIP gateway",
+        "1719": "H.225 RAS → MEDICAL(_dicom/PACS adjacency)",
+    }
+
+    @classmethod
+    def _port_signals(cls, service_distribution) -> str:
+        if not service_distribution:
+            return ""
+        text = str(service_distribution)
+        found = []
+        for port, meaning in cls._CHARACTERISTIC_PORTS.items():
+            for marker in (f"-{port},", f"-{port}:", f"-{port} "):
+                if marker in text or text.endswith(f"-{port}"):
+                    found.append(f"port {port}: {meaning}")
+                    break
+        return "; ".join(found)
 
     def _prepare_decision_node(self, state: dict) -> dict:
         ip = state["ip"]
@@ -1339,7 +1378,83 @@ class IoTDecisionGraph:
             "gemini": voting["gemini"],
             "claude": voting["claude"],
         }
+        # D6: 双分支弃权 / 单边弃权+低置信提交时, 回退一阶段 adapter 的
+        # seen 路径判决, 代替直接输出 UNKNOWN 或可疑的单边结论。
+        result.update(self._maybe_adapter_fallback(result, state, gemini, claude))
         return {"result": result}
+
+    # ── D6: decision-abstention adapter fallback ──────────────────────────────
+
+    _ADAPTER_FALLBACK_MIN_CONF = 0.60             # 双弃权触发门槛
+    _ADAPTER_FALLBACK_SINGLE_BRANCH_CONF = 0.70   # 单边低置信替代门槛
+    _SINGLE_BRANCH_DISTRUST_CONF = 0.65           # 单边提交置信低于此值即不信任
+    _ADAPTER_FALLBACK_CONF_CAP = 0.69             # 回退置信上限(与分歧封顶一致)
+
+    def _maybe_adapter_fallback(self, result: dict, state: dict,
+                                 gemini: dict, claude: dict) -> dict:
+        """弃权/弱提交时回退 adapter seen 路径判决, 返回待覆盖字段(无则空)。
+
+        bench_100 中 216 条 UNKNOWN 全部来自决策 LLM 弃权, 而 fine-tuned
+        adapter 在已知类型上离线准确率 93.4% —— 弃权时白扔掉它可惜。触发条件:
+        ① 双分支同时弃权且 adapter 置信 ≥ 0.60;
+        ② 恰有一边弃权、提交边置信 < 0.65 且 adapter 置信 ≥ 0.70
+           (MEDICAL→EasyIO 误判几乎全是该模式: gemini=UNKNOWN, claude=低置信提交)。
+        """
+        try:
+            def _abstain(d):
+                t = str((d or {}).get("device_type") or "").upper()
+                return t in ("", "UNKNOWN", "NONE")
+
+            g_abstain, c_abstain = _abstain(gemini), _abstain(claude)
+            final_type = str(result.get("predicted_device_type") or "").upper()
+            both_abstain = g_abstain and c_abstain
+            single_low = (
+                (g_abstain != c_abstain)
+                and final_type not in ("", "UNKNOWN")
+                and float(result.get("final_confidence") or 0.0)
+                < self._SINGLE_BRANCH_DISTRUST_CONF
+            )
+            if not (both_abstain or single_low):
+                return {}
+
+            unseen = ((state.get("first_stage") or {}).get("unseen")) or {}
+            fb_type = unseen.get("matched_rag_type") or unseen.get("classified_type")
+            fb_type = str(fb_type or "").upper().strip()
+            if fb_type in ("", "NONE", "UNKNOWN", "NAN"):
+                return {}
+            fb_conf = float(unseen.get("type_confidence")
+                            or unseen.get("classified_type_confidence") or 0.0)
+            threshold = (self._ADAPTER_FALLBACK_MIN_CONF if both_abstain
+                         else self._ADAPTER_FALLBACK_SINGLE_BRANCH_CONF)
+            if fb_conf < threshold:
+                return {}
+
+            update = {
+                "predicted_device_type": fb_type,
+                "final_confidence": round(min(fb_conf, self._ADAPTER_FALLBACK_CONF_CAP), 4),
+                "decision_source": "adapter_fallback",
+                "adapter_fallback": {
+                    "trigger": "both_abstain" if both_abstain else "single_branch_low_conf",
+                    "adapter_type": fb_type,
+                    "adapter_confidence": round(fb_conf, 4),
+                    "superseded_type": result.get("predicted_device_type"),
+                    "superseded_confidence": result.get("final_confidence"),
+                },
+            }
+            fb_vendor = unseen.get("matched_known_vendor")
+            if fb_vendor and str(fb_vendor).strip().lower() not in (
+                    "", "none", "unknown", "nan"):
+                update["predicted_vendor"] = str(fb_vendor).strip()
+            logging.info(
+                "adapter fallback %s: %s (conf=%.2f, trigger=%s)",
+                state.get("ip"), fb_type, fb_conf,
+                "both_abstain" if both_abstain else "single_branch_low_conf",
+            )
+            return update
+        except Exception as exc:  # noqa: BLE001 — 回退失败不影响主判决
+            logging.warning("adapter fallback failed for %s: %s",
+                            state.get("ip"), exc)
+            return {}
 
     # ── public entry point ────────────────────────────────────────────────────
 

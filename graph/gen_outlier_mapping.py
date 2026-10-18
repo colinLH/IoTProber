@@ -23,14 +23,12 @@ from path_config import (
     RAG_SINGLE_COMMUNITY_DIR,
     ROOT_DIR,
 )
+from util import load_neo4j_config
 
 BASE = ROOT_DIR
 DATA = RAG_DATA_DIR
 COMM = RAG_SINGLE_COMMUNITY_DIR
 OVERALL = RAG_OVERALL_COMMUNITY_DIR
-NEO4J_URL = "neo4j://localhost:7687"
-NEO4J_USER = "neo4j"
-NEO4J_PASS = "YOUR_NEO4J_PASSWORD"
 BATCH = 5000
 
 
@@ -76,7 +74,8 @@ def generate_mapping_for_perspective(g, perspective, output_dir):
 
 def main():
     print("Connecting to Neo4j...")
-    g = Graph(NEO4J_URL, auth=(NEO4J_USER, NEO4J_PASS))
+    neo4j = load_neo4j_config()
+    g = Graph(neo4j["uri"], auth=(neo4j["user"], neo4j["password"]))
 
     # Discover perspectives from directories
     perspectives = [

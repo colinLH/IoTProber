@@ -15,6 +15,7 @@ from path_config import (
     LOCAL_USED_FEATURES_FILE,
     ROOT_DIR,
 )
+from util import load_neo4j_config
 
 logging.basicConfig(
     level=logging.INFO,
@@ -34,7 +35,8 @@ class HierarchicalGraph:
         self.data_path = LOCAL_DATA_DIR
         self.community_path = LOCAL_SINGLE_COMMUNITY_DIR
         self.overall_path = LOCAL_OVERALL_COMMUNITY_DIR
-        self.graph = ProtocolGraph("neo4j://localhost:7687", "neo4j", "YOUR_NEO4J_PASSWORD")
+        neo4j = load_neo4j_config()
+        self.graph = ProtocolGraph(neo4j["uri"], neo4j["user"], neo4j["password"])
 
         self.fingerprint_features = self._load_fingerprint_features()
         self.device_labels = self._discover_device_labels(devices=devices)

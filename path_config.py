@@ -37,7 +37,13 @@ RAG_OVERALL_COMMUNITY_DIR = os.path.join(
 )
 RAG_HGT_COMMUNITY_DIR = os.path.join(RAG_DATA_DIR, "community", "embedding_HGT")
 RAG_MINOR_REVISION_DIR = os.path.join(RAG_DATA_DIR, "minor_revision")
-LOCAL_VECTOR_DB_DIR = os.path.join(LOCAL_DATA_DIR, "vectorDB")
+# Milvus Lite storage. Overridable because milvus-lite 3.x (directory-based
+# storage with file locking) is unreliable on some NFSv4 exports — point it at
+# a local/NFSv3 path when the data root sits on such a mount.
+LOCAL_VECTOR_DB_DIR = os.environ.get(
+    "IOTPROBER_VECTOR_DB_DIR",
+    os.path.join(LOCAL_DATA_DIR, "vectorDB"),
+)
 RAG_VECTOR_DB_DIR = os.path.join(RAG_DATA_DIR, "vectorDB")
 
 # Models and generated artifacts
@@ -46,7 +52,7 @@ DEFAULT_LLM_MODEL_DIR = os.path.join(ROOT_DIR, "Meta-Llama-3.1-8B-Instruct")
 ENTITY_GRAPH_DIR = os.path.join(ROOT_DIR, "entity_graph")
 GRAPH_MODEL_DIR = os.path.join(GRAPH_DIR, "model")
 GRAPH_UPDATE_DIR = os.path.join(GRAPH_DIR, "update")
-DRIFT_OUTPUT_DIR = os.path.join(ROOT_DIR, "drift_data", "autoencoder_drift")
+DRIFT_OUTPUT_DIR = os.path.join(ROOT_DIR, "drift_data", "autoencoder_drift_v2")
 
 # The full Hugging Face snapshot already contains these embeddings.
 HGT_INPUT_EMBEDDING_DIR = os.path.join(RAG_DATA_DIR, "embedding_local")

@@ -8,10 +8,12 @@ from py2neo import Graph
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from path_config import ENTITY_GRAPH_DIR, ROOT_DIR
+from util import load_neo4j_config
 
 BASE = ROOT_DIR
 ENTITY_GRAPH = ENTITY_GRAPH_DIR
-NEO4J = Graph("neo4j://localhost:7687", auth=("neo4j", "YOUR_NEO4J_PASSWORD"))
+_neo4j = load_neo4j_config()
+NEO4J = Graph(_neo4j["uri"], auth=(_neo4j["user"], _neo4j["password"]))
 
 existing_nodes = pd.read_csv(os.path.join(ENTITY_GRAPH, "node.csv"), usecols=["_id"])
 max_id = int(existing_nodes["_id"].max())

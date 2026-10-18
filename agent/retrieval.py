@@ -81,6 +81,30 @@ def fingerprint_digest(fingerprint: Dict[str, Any]) -> str:
     return hashlib.sha256(payload.encode("utf-8")).hexdigest()
 
 
+_AMBIGUOUS_IPS_CACHE: Optional[set] = None
+
+
+def _ambiguous_kb_ips() -> set:
+    """跨类型重复 IP 黑名单 (config/local_kb_ambiguous_ips.json, 构建期生成)。
+
+    同一 IP 挂在多个设备类型的知识库里 (约 5%, 多为多租户云主机, 如
+    43.206.221.46 同时在 BA/PRINTER/PM), 它们作为 local 近邻会把判决拉向
+    随机类型 —— 检索时一律不作数。文件缺失时静默返回空集, 不影响运行。
+    """
+    global _AMBIGUOUS_IPS_CACHE
+    if _AMBIGUOUS_IPS_CACHE is None:
+        path = os.path.join(
+            os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+            "config", "local_kb_ambiguous_ips.json",
+        )
+        try:
+            with open(path) as fh:
+                _AMBIGUOUS_IPS_CACHE = set(map(str, json.load(fh)))
+        except (OSError, ValueError):
+            _AMBIGUOUS_IPS_CACHE = set()
+    return _AMBIGUOUS_IPS_CACHE
+
+
 def local_index_signature() -> str:
     """Cheap signature for the active local-vector index files."""
     index_dir = os.path.join(LOCAL_VECTOR_DB_DIR, "local_npz")
@@ -1042,7 +1066,9 @@ class MultiLevelRetrieval:
                 graph_path = GRAPH_DIR
                 sys.path.insert(0, graph_path)
                 from api import ProtocolGraph
-                self._graph_db = ProtocolGraph("neo4j://localhost:7687", "neo4j", "YOUR_NEO4J_PASSWORD")
+                from util import load_neo4j_config
+                neo4j = load_neo4j_config()
+                self._graph_db = ProtocolGraph(neo4j["uri"], neo4j["user"], neo4j["password"])
                 logging.info("Neo4j ProtocolGraph connected for graph_neighbor queries.")
             except Exception as e:
                 logging.warning(f"Failed to connect to Neo4j for graph_neighbor: {e}")
@@ -1191,10 +1217,13 @@ class MultiLevelRetrieval:
             t_search_start = time.time()
             search_limit = max(top_k, 1)
             query_ip = query_fingerprint.get("ip")
+            exclude = {str(query_ip)} if query_ip is not None else set()
+            # KB 去重: 排除跨类型重复 IP (多租户云主机), 见 _ambiguous_kb_ips
+            exclude |= _ambiguous_kb_ips()
             all_similarities, total_compared, device_best = self._search_local_vectors(
                 weighted_flat,
                 top_k=search_limit,
-                exclude_ips={str(query_ip)} if query_ip is not None else None,
+                exclude_ips=exclude,
             )
             t_search = time.time()
 
