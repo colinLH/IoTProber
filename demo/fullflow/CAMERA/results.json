@@ -11,25 +11,231 @@
       "new_vendor_probability": 0.7970672241762925
     },
     "predicted_type": "NVR",
-    "decision_confidence": 1.0,
+    "decision_confidence": 0.795,
     "winning_llm": "GEMINI",
     "gemini_type": "NVR",
     "claude_type": "NVR",
     "predicted_vendor": "Macroscop",
-    "vendor_confidence": null,
+    "vendor_confidence": 0.855,
     "first_stage": {
       "unseen": {
         "new_type_probability": 0.0,
-        "new_vendor_probability": 0.8291,
-        "is_unseen": true,
+        "new_vendor_probability": 0.0,
+        "is_unseen": false,
         "predicted_type": "none",
-        "predicted_vendor": "Macroscopic",
-        "confidence": 0.8291,
+        "predicted_vendor": "none",
+        "confidence": 0.9055,
         "web_search_used": true,
         "available": true
       },
-      "drift_checked": false
+      "drift_checked": true,
+      "drift": {
+        "drift_score": 0.00580418758909218,
+        "threshold": 0.00851761843659915,
+        "threshold_scope": "global",
+        "is_drift": false,
+        "per_perspective_z": {
+          "os": 4.572148159192124,
+          "certificate": 1.5471327757409374,
+          "hfavicons": 1.2572711143340036,
+          "sw": 0.7701677798684573,
+          "whois": 0.1993629144364071,
+          "as": 0.13213646447330446,
+          "sd": 0.020713449722032574,
+          "hw": -0.02040814719961572,
+          "dns": -0.07823722087233455,
+          "htags": -0.45924049743497897,
+          "body": -0.678281800094127
+        },
+        "drifted_perspectives": [
+          "os"
+        ]
+      }
     },
+    "pipeline_version": "2026-09-25-v3",
+    "retrieval_evidence": {
+      "local": {
+        "similar_devices": [
+          {
+            "ip": "31.128.44.80",
+            "device_type": "SCADA",
+            "similarity_score": 0.7718154788017273,
+            "confidence_adjusted_score": 0.7113050251385872,
+            "source": "vector_search"
+          },
+          {
+            "ip": "116.203.63.19",
+            "device_type": "SCADA",
+            "similarity_score": 0.7680196166038513,
+            "confidence_adjusted_score": 0.7078067591278113,
+            "source": "vector_search"
+          },
+          {
+            "ip": "93.183.94.10",
+            "device_type": "SCADA",
+            "similarity_score": 0.7670623064041138,
+            "confidence_adjusted_score": 0.7069245021967286,
+            "source": "vector_search"
+          },
+          {
+            "ip": "20.219.3.169",
+            "device_type": "SCADA",
+            "similarity_score": 0.766941487789154,
+            "confidence_adjusted_score": 0.7068131557799859,
+            "source": "vector_search"
+          },
+          {
+            "ip": "107.175.214.212",
+            "device_type": "SCADA",
+            "similarity_score": 0.7665266990661621,
+            "confidence_adjusted_score": 0.706430886557434,
+            "source": "vector_search"
+          }
+        ],
+        "confidence_score": 0.9216,
+        "missing_perspectives": [
+          "dns"
+        ],
+        "total_compared": 362937
+      },
+      "community": {
+        "matched_clusters": [],
+        "unavailable_clusters": [
+          {
+            "device_type": "SCADA",
+            "cluster_id": -1,
+            "reason": "noise_cluster",
+            "related_ips": [
+              "31.128.44.80"
+            ]
+          },
+          {
+            "device_type": "SCADA",
+            "cluster_id": -1,
+            "reason": "noise_cluster",
+            "related_ips": [
+              "116.203.63.19"
+            ]
+          },
+          {
+            "device_type": "SCADA",
+            "cluster_id": -1,
+            "reason": "noise_cluster",
+            "related_ips": [
+              "93.183.94.10"
+            ]
+          },
+          {
+            "device_type": "SCADA",
+            "cluster_id": -1,
+            "reason": "noise_cluster",
+            "related_ips": [
+              "107.175.214.212"
+            ]
+          },
+          {
+            "device_type": "CAMERA",
+            "cluster_id": -1,
+            "reason": "noise_cluster",
+            "related_ips": [
+              "209.227.236.51"
+            ]
+          },
+          {
+            "device_type": "NAS",
+            "cluster_id": -1,
+            "reason": "noise_cluster",
+            "related_ips": [
+              "176.168.0.201"
+            ]
+          },
+          {
+            "device_type": "PRINTER",
+            "cluster_id": -1,
+            "reason": "noise_cluster",
+            "related_ips": [
+              "114.32.30.36"
+            ]
+          },
+          {
+            "device_type": "ROUTER",
+            "cluster_id": -1,
+            "reason": "noise_cluster",
+            "related_ips": [
+              "65.181.89.144"
+            ]
+          },
+          {
+            "device_type": "BUILDING_AUTOMATION",
+            "cluster_id": -1,
+            "reason": "noise_cluster",
+            "related_ips": [
+              "200.234.229.193"
+            ]
+          },
+          {
+            "device_type": "SCADA",
+            "cluster_id": 249,
+            "reason": "llm_match_failed: JSONDecodeError",
+            "related_ips": [
+              "20.219.3.169"
+            ]
+          },
+          {
+            "device_type": "NVR",
+            "cluster_id": 2,
+            "reason": "llm_match_failed: JSONDecodeError",
+            "related_ips": [
+              "3.83.217.94"
+            ]
+          },
+          {
+            "device_type": "POWER_METER",
+            "cluster_id": 13,
+            "reason": "llm_match_failed: JSONDecodeError",
+            "related_ips": [
+              "35.183.207.29"
+            ]
+          },
+          {
+            "device_type": "MEDICAL",
+            "cluster_id": 0,
+            "reason": "llm_match_failed: JSONDecodeError",
+            "related_ips": [
+              "168.119.165.127"
+            ]
+          },
+          {
+            "device_type": "ALARM",
+            "cluster_id": 7,
+            "reason": "llm_match_failed: JSONDecodeError",
+            "related_ips": [
+              "93.102.115.29"
+            ]
+          },
+          {
+            "device_type": "CONTROLLER",
+            "cluster_id": 13,
+            "reason": "llm_match_failed: JSONDecodeError",
+            "related_ips": [
+              "49.228.131.51"
+            ]
+          }
+        ]
+      },
+      "reasoning": {
+        "path_matching_results": [],
+        "summary": {
+          "total_clusters_analyzed": 0,
+          "top_cluster": null,
+          "status": "unavailable",
+          "reason": "no_reliable_community_clusters"
+        }
+      }
+    },
+    "status": "completed",
+    "retrieval_complete": true,
+    "decision_complete": true,
     "type_correct": false
   },
   {
@@ -43,13 +249,13 @@
       "new_type_probability": 0.0,
       "new_vendor_probability": 0.9874387638333714
     },
-    "predicted_type": "SCADA",
-    "decision_confidence": 0.95,
+    "predicted_type": "NVR",
+    "decision_confidence": 0.55,
     "winning_llm": "GEMINI",
-    "gemini_type": "SCADA",
-    "claude_type": "CAMERA",
+    "gemini_type": "NVR",
+    "claude_type": "SCADA",
     "predicted_vendor": "Xsolution",
-    "vendor_confidence": null,
+    "vendor_confidence": 0.575,
     "first_stage": {
       "unseen": {
         "new_type_probability": 0.0,
@@ -61,8 +267,182 @@
         "web_search_used": false,
         "available": true
       },
-      "drift_checked": false
+      "drift_checked": true,
+      "drift": {
+        "drift_score": 0.005642661650199443,
+        "threshold": 0.00851761843659915,
+        "threshold_scope": "global",
+        "is_drift": false,
+        "per_perspective_z": {
+          "os": 8.538065072905356,
+          "sd": 1.2060200989051082,
+          "certificate": 0.9750451524410135,
+          "hfavicons": 0.9728275880097793,
+          "hw": 0.0328659567431841,
+          "as": -0.2780288729451841,
+          "sw": -0.2867897029685003,
+          "body": -0.5293170318655722,
+          "whois": -0.5831265296098193,
+          "htags": -0.6244173125083361,
+          "dns": -0.7012854414270215
+        },
+        "drifted_perspectives": [
+          "os"
+        ]
+      }
     },
+    "pipeline_version": "2026-09-25-v3",
+    "retrieval_evidence": {
+      "local": {
+        "similar_devices": [
+          {
+            "ip": "31.24.180.232",
+            "device_type": "ROUTER",
+            "similarity_score": 0.8282757997512817,
+            "confidence_adjusted_score": 0.7633388481382324,
+            "source": "vector_search"
+          },
+          {
+            "ip": "212.111.11.111",
+            "device_type": "NAS",
+            "similarity_score": 0.7526252865791321,
+            "confidence_adjusted_score": 0.6936193469729981,
+            "source": "vector_search"
+          },
+          {
+            "ip": "212.227.166.230",
+            "device_type": "BUILDING_AUTOMATION",
+            "similarity_score": 0.7511726021766663,
+            "confidence_adjusted_score": 0.6922805532537808,
+            "source": "vector_search"
+          },
+          {
+            "ip": "87.197.118.115",
+            "device_type": "CAMERA",
+            "similarity_score": 0.7444430589675903,
+            "confidence_adjusted_score": 0.6860786072796802,
+            "source": "vector_search"
+          },
+          {
+            "ip": "200.129.247.231",
+            "device_type": "SCADA",
+            "similarity_score": 0.7415999174118042,
+            "confidence_adjusted_score": 0.6834583684643732,
+            "source": "vector_search"
+          }
+        ],
+        "confidence_score": 0.9216,
+        "missing_perspectives": [
+          "dns"
+        ],
+        "total_compared": 362937
+      },
+      "community": {
+        "matched_clusters": [],
+        "unavailable_clusters": [
+          {
+            "device_type": "ROUTER",
+            "cluster_id": -1,
+            "reason": "noise_cluster",
+            "related_ips": [
+              "31.24.180.232"
+            ]
+          },
+          {
+            "device_type": "NAS",
+            "cluster_id": -1,
+            "reason": "noise_cluster",
+            "related_ips": [
+              "212.111.11.111"
+            ]
+          },
+          {
+            "device_type": "BUILDING_AUTOMATION",
+            "cluster_id": -1,
+            "reason": "noise_cluster",
+            "related_ips": [
+              "212.227.166.230"
+            ]
+          },
+          {
+            "device_type": "CAMERA",
+            "cluster_id": -1,
+            "reason": "noise_cluster",
+            "related_ips": [
+              "87.197.118.115"
+            ]
+          },
+          {
+            "device_type": "PRINTER",
+            "cluster_id": -1,
+            "reason": "noise_cluster",
+            "related_ips": [
+              "80.102.160.133"
+            ]
+          },
+          {
+            "device_type": "MEDICAL",
+            "cluster_id": -1,
+            "reason": "noise_cluster",
+            "related_ips": [
+              "187.111.28.116"
+            ]
+          },
+          {
+            "device_type": "NVR",
+            "cluster_id": -1,
+            "reason": "noise_cluster",
+            "related_ips": [
+              "109.164.34.215"
+            ]
+          },
+          {
+            "device_type": "SCADA",
+            "cluster_id": 96,
+            "reason": "llm_match_failed: JSONDecodeError",
+            "related_ips": [
+              "200.129.247.231"
+            ]
+          },
+          {
+            "device_type": "POWER_METER",
+            "cluster_id": 0,
+            "reason": "llm_match_failed: JSONDecodeError",
+            "related_ips": [
+              "51.21.218.195"
+            ]
+          },
+          {
+            "device_type": "ALARM",
+            "cluster_id": 27,
+            "reason": "llm_match_failed: JSONDecodeError",
+            "related_ips": [
+              "185.19.140.194"
+            ]
+          },
+          {
+            "device_type": "CONTROLLER",
+            "cluster_id": 13,
+            "reason": "llm_match_failed: JSONDecodeError",
+            "related_ips": [
+              "110.146.196.228"
+            ]
+          }
+        ]
+      },
+      "reasoning": {
+        "path_matching_results": [],
+        "summary": {
+          "total_clusters_analyzed": 0,
+          "top_cluster": null,
+          "status": "unavailable",
+          "reason": "no_reliable_community_clusters"
+        }
+      }
+    },
+    "status": "completed",
+    "retrieval_complete": true,
+    "decision_complete": true,
     "type_correct": false
   },
   {
@@ -77,25 +457,202 @@
       "new_vendor_probability": 0.8809237184118065
     },
     "predicted_type": "CAMERA",
-    "decision_confidence": 1.0,
-    "winning_llm": "GEMINI",
+    "decision_confidence": 0.865,
+    "winning_llm": "CLAUDE",
     "gemini_type": "CAMERA",
     "claude_type": "CAMERA",
     "predicted_vendor": "Chunghwa Telecom",
-    "vendor_confidence": null,
+    "vendor_confidence": 0.525,
     "first_stage": {
       "unseen": {
         "new_type_probability": 0.0,
-        "new_vendor_probability": 0.8809,
+        "new_vendor_probability": 0.8798,
         "is_unseen": true,
         "predicted_type": "none",
         "predicted_vendor": "Chunghwa Telecom",
-        "confidence": 0.8809,
+        "confidence": 0.8798,
         "web_search_used": false,
         "available": true
       },
-      "drift_checked": false
+      "drift_checked": true,
+      "drift": {
+        "drift_score": 0.008039904438192025,
+        "threshold": 0.00851761843659915,
+        "threshold_scope": "global",
+        "is_drift": false,
+        "per_perspective_z": {
+          "os": 8.602324786575565,
+          "htags": 5.727329838569227,
+          "certificate": 2.9241575548341054,
+          "dns": 2.920110599116362,
+          "sw": 2.33266076210373,
+          "whois": 2.2305546591681082,
+          "sd": 2.134298543154488,
+          "body": 2.0546193388492853,
+          "as": 0.8835939050822011,
+          "hfavicons": 0.3496630549307413,
+          "hw": 0.34448495599768786
+        },
+        "drifted_perspectives": [
+          "os",
+          "htags"
+        ]
+      }
     },
+    "pipeline_version": "2026-09-25-v3",
+    "retrieval_evidence": {
+      "local": {
+        "similar_devices": [
+          {
+            "ip": "210.65.226.182",
+            "device_type": "CAMERA",
+            "similarity_score": 0.897617757320404,
+            "confidence_adjusted_score": 0.8976176503160321,
+            "source": "vector_search"
+          },
+          {
+            "ip": "210.65.226.180",
+            "device_type": "CAMERA",
+            "similarity_score": 0.8975638151168823,
+            "confidence_adjusted_score": 0.8975637081189408,
+            "source": "vector_search"
+          },
+          {
+            "ip": "210.65.226.184",
+            "device_type": "CAMERA",
+            "similarity_score": 0.8975436687469482,
+            "confidence_adjusted_score": 0.8975435617514084,
+            "source": "vector_search"
+          },
+          {
+            "ip": "210.65.226.185",
+            "device_type": "CAMERA",
+            "similarity_score": 0.8974635004997253,
+            "confidence_adjusted_score": 0.8974633935137423,
+            "source": "vector_search"
+          },
+          {
+            "ip": "210.65.226.171",
+            "device_type": "CAMERA",
+            "similarity_score": 0.8967135548591614,
+            "confidence_adjusted_score": 0.8967134479625788,
+            "source": "vector_search"
+          }
+        ],
+        "confidence_score": 1.0,
+        "missing_perspectives": [],
+        "total_compared": 362937
+      },
+      "community": {
+        "matched_clusters": [],
+        "unavailable_clusters": [
+          {
+            "device_type": "NVR",
+            "cluster_id": -1,
+            "reason": "noise_cluster",
+            "related_ips": [
+              "180.43.110.70"
+            ]
+          },
+          {
+            "device_type": "ROUTER",
+            "cluster_id": -1,
+            "reason": "noise_cluster",
+            "related_ips": [
+              "60.248.46.97"
+            ]
+          },
+          {
+            "device_type": "SCADA",
+            "cluster_id": -1,
+            "reason": "noise_cluster",
+            "related_ips": [
+              "59.125.247.31"
+            ]
+          },
+          {
+            "device_type": "MEDICAL",
+            "cluster_id": -1,
+            "reason": "noise_cluster",
+            "related_ips": [
+              "185.21.68.1"
+            ]
+          },
+          {
+            "device_type": "PRINTER",
+            "cluster_id": -1,
+            "reason": "noise_cluster",
+            "related_ips": [
+              "60.248.45.101"
+            ]
+          },
+          {
+            "device_type": "BUILDING_AUTOMATION",
+            "cluster_id": -1,
+            "reason": "noise_cluster",
+            "related_ips": [
+              "91.213.245.75"
+            ]
+          },
+          {
+            "device_type": "CAMERA",
+            "cluster_id": 4,
+            "reason": "llm_match_failed: JSONDecodeError",
+            "related_ips": [
+              "210.65.226.182",
+              "210.65.226.180",
+              "210.65.226.184",
+              "210.65.226.185",
+              "210.65.226.171"
+            ]
+          },
+          {
+            "device_type": "NAS",
+            "cluster_id": 3,
+            "reason": "llm_match_failed: JSONDecodeError",
+            "related_ips": [
+              "114.38.14.119"
+            ]
+          },
+          {
+            "device_type": "POWER_METER",
+            "cluster_id": 3,
+            "reason": "llm_match_failed: JSONDecodeError",
+            "related_ips": [
+              "78.189.129.179"
+            ]
+          },
+          {
+            "device_type": "ALARM",
+            "cluster_id": 27,
+            "reason": "llm_match_failed: JSONDecodeError",
+            "related_ips": [
+              "20.92.224.158"
+            ]
+          },
+          {
+            "device_type": "CONTROLLER",
+            "cluster_id": 12,
+            "reason": "llm_match_failed: JSONDecodeError",
+            "related_ips": [
+              "113.21.41.1"
+            ]
+          }
+        ]
+      },
+      "reasoning": {
+        "path_matching_results": [],
+        "summary": {
+          "total_clusters_analyzed": 0,
+          "top_cluster": null,
+          "status": "unavailable",
+          "reason": "no_reliable_community_clusters"
+        }
+      }
+    },
+    "status": "completed",
+    "retrieval_complete": true,
+    "decision_complete": true,
     "type_correct": true
   }
 ]
