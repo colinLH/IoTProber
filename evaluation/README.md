@@ -286,16 +286,25 @@ cluster, and none contains the degraded marker `降级`.
 python -m unittest tests.test_retrieval_integrity tests.test_demo_evaluation evaluation.drift.test_drift_v2
 ```
 
-**Expected output:** `Ran 15 tests … OK`. The tests cover:
+**Expected output:** `Ran 21 tests … OK`. The tests cover:
 
 - local retrieval is weighted cosine, never returns the query IP, and keeps scores in [-1, 1];
-- corrupt community files are isolated;
+- an empty local index preserves the search contract;
+- the retrieval cache is bound to the full fingerprint and top-k;
+- corrupt community files are isolated, and noise clusters / missing reports are marked
+  unavailable instead of silently dropped;
+- reasoning importance uses the complete cluster, and a missing summary falls back to a
+  statistical report built from raw members;
+- the decision tool does not expose the filename label to the LLMs;
+- joint voting never boosts uncalibrated confidence, and vendor voting uses vendor
+  confidence independently;
 - vendor novelty does not suppress the drift check;
 - the fullflow metrics are computed correctly;
 - PACA perspective weights sum to 1;
 - the hashed features are deterministic;
 - the IP-grouped splits never leak an IP across splits;
-- the calibration-quantile thresholds are correct.
+- the cross-type conflicts are removed and the calibration-quantile thresholds use the
+  calibration split only.
 
 ### 2.7 End-to-end pipeline on a small input
 
