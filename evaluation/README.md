@@ -38,7 +38,7 @@ mirrors that may move ahead of the archived version.
 | `platform_data/csv/rag/vectorDB/local_npz/` | Memory-mapped local-retrieval index (`*_emb.npy`, `*_ips.npy`) | local retrieval | `$IOTPROBER_CSV_DATA_DIR/rag/vectorDB/` |
 | `platform_data/csv/all/ipraw_{MEDIA_SERVER,VPN}.csv` | Unseen-device test fingerprints (Table 1, 19,854 IPs) | Table 8 | `$IOTPROBER_CSV_DATA_DIR/all/` |
 | `platform_data/csv/label/` | Vendor labels | vendor metrics | `$IOTPROBER_CSV_DATA_DIR/label/` |
-| `platform_data/shodan/` | Shodan fingerprints of the Alarm/Controller IPs (2026-07-21) | Table 4 inputs (no consumer script in this release, see 3.7) | any |
+| `platform_data/shodan/` | Shodan fingerprints of the Alarm/Controller IPs (2026-07-21) | archived reference data | any |
 | `evaluation/validation/46_features/test_{TYPE}_1.csv` | Known-type test sets (Table 1 `[T]`, 76,319 IPs) | Tables 2, 3, 7 | `evaluation/validation/46_features/` |
 | `evaluation/validation/vendor_testset/test_{TYPE}_1_label.csv` | Vendor test labels (Table 1 `[V]`) | Table 3 | `evaluation/validation/vendor_testset/` |
 | `evaluation/unseen/vendor/dataset/test_{MEDIA_SERVER,VPN}_label.csv` | Unseen-vendor labels (13,458 IPs) | Table 8 | same path |
@@ -86,7 +86,8 @@ python -c "import torch, transformers, peft, hdbscan, langgraph, py2neo; \
 print('torch', torch.__version__, 'cuda', torch.cuda.is_available())"
 ```
 
-**Expected output:** `torch 2.9.1 cuda True`. **Check:** `pip check` reports no broken requirements.
+**Expected output:** `torch 2.9.1 cuda True`. **Check:** the import line runs without
+`ImportError` and reports your CUDA build as available.
 
 ### 2.2 Data and models
 
@@ -210,14 +211,16 @@ python graph/build_neo4j.py
 python graph/build_neo4j.py --devices ALARM CONTROLLER --layers 1 2 3
 ```
 
-**Expected output:** per-layer summary tables, then `Final Neo4j Statistics`. On the
-archived data: about 3.6 × 10⁵ `Device` nodes (one per knowledge-base row, 362,937 rows),
-about 1.6 × 10⁶ `Feature` nodes, 1,493,994 single-perspective and 175,292
-comprehensive-view `Cluster` nodes.
+**Expected output:** per-layer summary tables, then `Final Neo4j Statistics`. A pristine
+build has 362,937 `Device` nodes — exactly one per knowledge-base row, i.e. the sum of the
+`[R]` counts in Table 1 (a smaller number means duplicate IPs inside one type merged).
+The build prints the `Feature` and `Cluster` counts itself; treat those as build output
+rather than fixed constants, and compare them across rebuilds.
 
 **Check:**
 
 ```cypher
+MATCH (d:Device) RETURN count(d);   // 362937 on a pristine build
 MATCH (c:Cluster {perspective:'comprehensive'}) RETURN c.device_type, count(*) ORDER BY c.device_type;
 MATCH (c:Cluster) WITH c.perspective AS p, c.cluster_id AS id, count(*) AS n WHERE n > 1 RETURN count(*);  // must be 0
 ```
@@ -231,8 +234,8 @@ before a new evaluation if a pristine knowledge graph is required.
 **Option A, archived artifacts (recommended):** nothing to run. Sections 1.2 and 2.2
 already place them.
 
-**Option B, full rebuild** (≈ 148 h for 421,759 devices; needs the `CLAUDE` key for the
-cluster reports):
+**Option B, full rebuild** (the paper reports 148.25 h for the full graph construction;
+needs the `CLAUDE` key for the cluster reports):
 
 ```bash
 python graph/construction.py --all --gpu 0   # cluster → Layer 1 + export → HGT (+ overall clustering) → Layer 2/3 → vector
@@ -300,12 +303,14 @@ The run below performs, on three curated CAMERA cases:
 
 - query decomposition;
 - local, community and reasoning-path retrieval;
-- the unseen detector (Llama-3.1-8B + LoRA, 4-bit), with the Tavily loop;
+- the unseen detector (Llama-3.1-8B + LoRA, 4-bit), which can call Tavily when its
+  evidence is insufficient (the Tavily key is optional);
 - PACA drift detection;
 - the Gemini and Claude ReAct branches;
 - joint voting.
 
-All outputs go to `demo/fullflow/`.
+All outputs go to `demo/fullflow/`. In the reference run the three cases completed in
+about 9 minutes on one GPU.
 
 ```bash
 CUDA_VISIBLE_DEVICES=0 python demo/run_fullflow_demo.py --showcase-only --types CAMERA
@@ -314,21 +319,29 @@ python demo/evaluate_fullflow.py --allow-partial
 
 **Expected output:**
 
-- The first command prints `[CAMERA] k/3 completed correct …` and then `FULLFLOW SWEEP DONE`.
+- The first command prints one summary line per type, e.g.
+  `[CAMERA] 1/3 completed correct (210.65.226.181) best_conf=0.865 in 536s`, then
+  `FULLFLOW SWEEP DONE`.
 - It writes `demo/fullflow/CAMERA/results.json`. Each row contains:
   - `predicted_type`, `decision_confidence`, `winning_llm`, `gemini_type`, `claude_type`, `predicted_vendor`;
-  - `first_stage.unseen` (`new_type_probability`, `new_vendor_probability`, …);
+  - `first_stage.unseen` (`new_type_probability`, `new_vendor_probability`, `web_search_used`, …);
   - `first_stage.drift` (`drift_score`, `threshold`, `is_drift`);
   - `retrieval_evidence` for all three retrieval levels.
-- It also writes `demo/fullflow/manifest.json` with `schema_version` `2026-09-25-v3`.
+- It also writes `demo/fullflow/manifest.json` with `schema_version` `2026-09-25-v3`
+  (status `partial` when only one type was requested).
 - `evaluate_fullflow.py` writes `demo/fullflow/evaluation_report.json`.
 
 **Check** (in `evaluation_report.json → by_type.CAMERA`):
 
-- `completion_rate = 1.0`;
+- `completion_rate = 1.0` — every case has a decision and evidence from all three levels;
 - `self_match_violations = 0` (no query retrieves itself);
 - `score_range_violations = 0` (every similarity lies in [-1, 1]);
-- `local_availability`, `community_availability` and `reasoning_availability` are all `1.0`.
+- `local_availability = 1.0`;
+- `community_availability` and `reasoning_availability` lie in [0, 1]; whenever they
+  are below 1, the affected cases list the reason in
+  `retrieval_evidence.community.unavailable_clusters` (for example `noise_cluster` when
+  the retrieved neighbours are HDBSCAN noise points). In the reference run both were
+  0.0 for this reason.
 
 The same entry point runs the whole fixed-seed validation set (40 IPs per type) when
 `--showcase-only` is omitted.
@@ -347,9 +360,10 @@ DRIFT_NUM_WORKERS=8 python agent/drift.py --data_dir $IOTPROBER_CSV_DATA_DIR/rag
 
 - In `training_manifest.json`, the split sizes are deterministic and must match exactly:
   `raw_rows = 362937`, `cleaned_rows = 326499`, and 32,475 test rows.
-- In `clean_test_metrics.csv`, the `__macro__` clean false-positive rate should lie between
-  0.5% and 1.5%. The thresholds are the 99th percentile of a held-out calibration split,
-  so the expected value is ≈ 1%; the archived model has 0.767%.
+- In `clean_test_metrics.csv`, the `__macro__` clean false-positive rate is expected close
+  to 1%: the thresholds are the 99th percentile of a held-out calibration split, so the
+  clean-test false-positive rate fluctuates around 1 − 0.99 by construction (the archived
+  model has 0.767%).
 
 ---
 
@@ -361,10 +375,8 @@ DRIFT_NUM_WORKERS=8 python agent/drift.py --data_dir $IOTPROBER_CSV_DATA_DIR/rag
 |---|---|---|---|
 | C1 Device-type identification of 11 known types | Table 2 (Macro-F1 0.9582, overall accuracy 97.78%) | `46_features/test_{TYPE}_1.csv` (76,319 IPs) | 3.3 |
 | C2 Vendor identification of 11 known types | Table 3 (identification rate 98.40%, Top-3 93.39%) | `vendor_testset/*_label.csv`, `label_{ALARM,CONTROLLER}.csv` | 3.3 |
-| C3 Ablation of retrieval layers and unseen detection | Table 7 | Alarm + Controller (294 IPs); NAS long-tail (300 IPs) | 3.3 / 3.6 |
-| C4 Comparison with Shodan | Table 4 | Alarm 163 / Controller 77 IPs with Shodan data | 3.6 |
-| C5 Unseen devices (Media Server, VPN) | Table 8 (type accuracy 99.44%, vendor Top-1 92.30%) | `all/ipraw_{MEDIA_SERVER,VPN}.csv` (19,854 IPs) | 3.4 |
-| C6 In-class concept drift | Table 10 | `evaluation/drift/CADE/dataset/` | 3.5 |
+| C3 Unseen devices (Media Server, VPN) | Table 8 (type accuracy 99.44%, vendor Top-1 92.30%) | `all/ipraw_{MEDIA_SERVER,VPN}.csv` (19,854 IPs) | 3.4 |
+| C4 In-class concept drift | Table 10 | `evaluation/drift/CADE/dataset/` | 3.5 |
 
 ### 3.2 Common protocol
 
@@ -401,7 +413,7 @@ DRIFT_NUM_WORKERS=8 python agent/drift.py --data_dir $IOTPROBER_CSV_DATA_DIR/rag
    `--devices` of `check_results.py` scores partial runs; tolerances then widen
    automatically with the smaller n.
 
-### 3.3 C1–C3: known device types (Tables 2, 3 and the full-pipeline rows of Table 7)
+### 3.3 C1–C2: known device types (Tables 2 and 3)
 
 ```bash
 mkdir -p $IOTPROBER_VALIDATION_DIR
@@ -463,19 +475,7 @@ Metric definitions:
   no ranked vendor list, `check_results.py` marks Top-3 as `N/A` and reports Top-1 accuracy
   (a lower bound of Top-3) as `INFO`.
 
-**Expected metrics, Table 7 (full pipeline, Alarm + Controller, 294 IPs):**
-
-| Metric | Value | Tolerance (pp) |
-|---|---|---|
-| Type macro-F1 | 0.9227 | 3.1 |
-| Type overall accuracy | 0.8503 | 4.1 |
-| Vendor identification rate | 99.66% | 1.0 |
-| Vendor Top-3 accuracy | 90.82% | 3.3 |
-
-All four values come from the same run as Tables 2 and 3. The ablation rows of Table 7 and
-the NAS long-tail block are listed in Section 3.6.
-
-### 3.4 C5: unseen devices (Table 8)
+### 3.4 C3: unseen devices (Table 8)
 
 ```bash
 export RUN=$PWD/runs/unseen IOTPROBER_VALIDATION_DIR=$PWD/runs/unseen/validation \
@@ -507,7 +507,7 @@ The paper also reports averages: macro-F1 0.9972, accuracy 0.9944, vendor Top-1 
 rule as Table 3. For reference, the paper reports type accuracy of 0.7512 / 0.2156 for B1
 and 0.6638 / 0.0861 for B2 (Media Server / VPN).
 
-### 3.5 C6: in-class concept drift (Table 10)
+### 3.5 C4: in-class concept drift (Table 10)
 
 Protocol:
 
@@ -527,13 +527,3 @@ Datasets: `evaluation/drift/CADE/dataset/{train_SVM,validation_SVM,test_SVM}`.
 Drift-detection correctness among detected samples: IoTProber 94.96% (773 / 814),
 CADE 68.97% (767 / 1,112). Tolerance: 1 pp on F1 and accuracy; the detected and correct
 counts depend on the trained models and are compared with the same 95% binomial rule.
-
-### 3.6 Further paper tables (targets)
-
-**Table 4, comparison with Shodan.** Values are IoTProber M / B1 / B2 / B3-rule / B3-llm; a
-dash means not applicable.
-
-| Device | Type recall (%) | Vendor identification rate (%) | Vendor Top-3 (%) |
-|---|---|---|---|
-| Alarm (163) | 74.23 / 34.97 / 46.63 / 71.78 / 0.00 | 99.39 / 88.34 / 81.60 / 80.37 / 96.32 | 84.66 / 75.46 / 79.75 / 70.55 / 71.17 |
-| Controller (77) | 100.00 / 76.62 / 83.12 / 79.22 / 75.32 | 100.00 / 92.21 / 89.61 / 75.32 / 97.40 | 100.00 / 89.61 / 89.61 / 75.32 / 75.32 |
