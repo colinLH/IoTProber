@@ -60,8 +60,7 @@ the official model cards:
 
 ## 2. Artifacts Evaluated
 
-Every step below has an **Expected output** and a **Check** the evaluator can apply
-without trusting the authors' numbers.
+Every step below has an **Expected output** and a **Check**.
 
 ### 2.0 Requirements
 
