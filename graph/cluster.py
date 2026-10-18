@@ -1608,9 +1608,9 @@ class GraphClustering:
         with open(summaries_file, "w", encoding="utf-8") as f:
             json.dump(cluster_summaries, f, indent=4)
 
-    def explain_report(self, device_type: str = "camera", llm: str = "CLAUDE", perspective_name: str = "whois", analyze_cols: list = [], recovery_cluster_ids: set = None):
+    def explain_report(self, device_type: str = "camera", llm: str = "DEEPSEEK", perspective_name: str = "whois", analyze_cols: list = [], recovery_cluster_ids: set = None):
         """
-        Generate a report analyzing cluster distributions using Gemini LLM API.
+        Generate a report analyzing cluster distributions using the configured LLM API.
         
         Args:
             device_type: Device type (e.g., "camera", "printer", "scada")
@@ -1731,7 +1731,12 @@ class GraphClustering:
                         {"role": "user", "content": prompt}
                     ]
                 
-                analysis_json = self.llm.chat_with_llm(llm, messages, whether_json=True)
+                # DeepSeek-V4 reasons by default; disable it so short report
+                # budgets keep the answer in content.
+                analysis_json = self.llm.chat_with_llm(
+                    llm, messages, whether_json=True,
+                    **({"thinking": "disabled"} if llm == "DEEPSEEK" else {}),
+                )
                    
                 success_status = analysis_json.get("common_patterns", "")
                 if not success_status:
@@ -1799,7 +1804,7 @@ class GraphClustering:
 
                 logging.info(f"Recovering {dev} - {perspective_name}: {len(missing_ids)} incomplete clusters {sorted(missing_ids)}")
                 self.explain_report(device_type=dev,
-                                    llm="CLAUDE",
+                                    llm="DEEPSEEK",
                                     perspective_name=perspective_name,
                                     analyze_cols=perspective_cols,
                                     recovery_cluster_ids=missing_ids)
@@ -1810,7 +1815,7 @@ class GraphClustering:
                         continue
                     perspective_cols = self.perspective_info_config[perspective_name]["cols"]
                     self.explain_report(device_type=dev, 
-                                        llm="CLAUDE",
+                                        llm="DEEPSEEK",
                                         perspective_name=perspective_name, 
                                         analyze_cols=perspective_cols)
         
