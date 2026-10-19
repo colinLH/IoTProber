@@ -24,10 +24,13 @@ Usage (from the repository root):
   python demo/unseen_detector_demo.py --true-vendor Bosch      # override label
 
 Expected resources (see evaluation/REBUTTAL_ADDENDUM.md §1.3):
-  ./Meta-Llama-3.1-8B-Instruct/                      (gated HF download)
-  evaluation/unseen/llama3/results_v2/final_model/   (released adapter)
-  demo/ALARM/validation_cases.json                   (fixed-seed pool)
-  agent/query_db/{local,community,reasoning}/ALARM_*.json     (evidence cache)
+  demo/evidence/ALARM_{local,community,reasoning}.json  (v3 evidence cache, shipped)
+  demo/evidence/known_vendors.json                      (vendor lexicon, shipped)
+  demo/ALARM/validation_cases.json                      (fixed-seed pool, shipped)
+  ./Meta-Llama-3.1-8B-Instruct/                         (gated HF download)
+  evaluation/unseen/llama3/results_v2/final_model/      (released adapter, HF dataset)
+
+`--skip-model` therefore runs from a fresh clone with no further downloads.
 """
 import argparse
 import hashlib
@@ -39,11 +42,17 @@ import time
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path[:0] = [ROOT, os.path.join(ROOT, "agent")]
 
+# Evidence caches + vendor lexicon ship with the repository under demo/evidence/;
+# a full local run layout (agent/query_db/, released adapter dir) is used as fallback.
+EVIDENCE_DIR = os.path.join(ROOT, "demo", "evidence")
 QUERY_DB = os.path.join(ROOT, "agent", "query_db")
 DEFAULT_BASE = os.path.join(ROOT, "Meta-Llama-3.1-8B-Instruct")
 DEFAULT_ADAPTER = os.path.join(ROOT, "evaluation", "unseen", "llama3",
                                "results_v2", "final_model")
-KNOWN_VENDORS = os.path.join(DEFAULT_ADAPTER, "known_vendors.json")
+KNOWN_VENDORS_CANDIDATES = [
+    os.path.join(EVIDENCE_DIR, "known_vendors.json"),
+    os.path.join(DEFAULT_ADAPTER, "known_vendors.json"),
+]
 
 # Vendor-bearing fingerprint/report fields used for evidence scoring.
 VENDOR_FIELDS = ["cert-issuers", "cert-subjects", "cert-info", "hw-products",
@@ -70,18 +79,33 @@ def load_cases():
 
 
 def load_evidence():
-    """Return {fingerprint_id: entry} for each non-empty retrieval level."""
+    """Return {fingerprint_id: entry} for each non-empty retrieval level.
+
+    demo/evidence/ (shipped with the repository) takes precedence; the
+    agent/query_db caches of a full local run are the fallback.
+    """
     ev = {}
     for lvl in ("local", "community", "reasoning"):
-        path = os.path.join(QUERY_DB, lvl, f"{DEVICE}_{lvl}.json")
-        if not os.path.exists(path):
-            sys.exit(f"missing evidence cache: {path}\n"
-                     f"(hf download IoTProber/raw_dataset --repo-type dataset "
-                     f"--include 'evaluation/*' does not ship agent/query_db; "
-                     f"re-run demo/run_fullflow_demo.py to rebuild it)")
+        name = f"{DEVICE}_{lvl}.json"
+        candidates = [os.path.join(EVIDENCE_DIR, name),
+                      os.path.join(QUERY_DB, lvl, name)]
+        path = next((p for p in candidates if os.path.exists(p)), None)
+        if path is None:
+            sys.exit(f"missing evidence cache: {name} (looked in "
+                     f"{', '.join(candidates)}) — re-run "
+                     f"`python demo/run_fullflow_demo.py --types {DEVICE}` to "
+                     f"rebuild it")
         entries = json.load(open(path))
         ev[lvl] = {fingerprint_id(e.get("query_fingerprint", {})): e for e in entries}
     return ev
+
+
+def load_known_vendors():
+    path = next((p for p in KNOWN_VENDORS_CANDIDATES if os.path.exists(p)), None)
+    if path is None:
+        sys.exit("missing known_vendors.json (looked in "
+                 + ", ".join(KNOWN_VENDORS_CANDIDATES) + ")")
+    return json.load(open(path))["known_vendors_by_type"].get(DEVICE, [])
 
 
 def _hint_regen():
@@ -177,7 +201,7 @@ def run_detector(case, loc, com, rea, args):
 
 def evidence_vendor_scores(case, com):
     """Count lexicon-vendor mentions across fingerprint + community report."""
-    lex = json.load(open(KNOWN_VENDORS))["known_vendors_by_type"].get(DEVICE, [])
+    lex = load_known_vendors()
     lex = sorted(lex, key=len, reverse=True)  # longest match first
     scores, sources = {}, {}
 
