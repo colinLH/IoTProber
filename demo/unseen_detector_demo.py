@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Single-file runnable demo: unseen detector on an ALARM / CONTROLLER device.
+"""Single-file runnable demo: unseen detector on an ALARM device.
 
 This is the artifact-evaluation example for the paper's first-stage unseen
 detector. For one fixed-seed validation device it shows, end to end:
@@ -17,14 +17,8 @@ detector. For one fixed-seed validation device it shows, end to end:
 No LLM API keys are needed. With --skip-model the detector call is skipped
 (and rank 1 comes from evidence only) so the evidence part runs on any CPU.
 
-ALARM is the complete example (v3 evidence at all three levels). CONTROLLER's
-community/reasoning cache is the disclosed legacy v2 run and does not cover
-the demo pool, so for CONTROLLER the demo degrades to local evidence +
-fingerprint ranking and prints how to regenerate v3 evidence.
-
 Usage (from the repository root):
   python demo/unseen_detector_demo.py                          # ALARM showcase
-  python demo/unseen_detector_demo.py --device CONTROLLER
   python demo/unseen_detector_demo.py --ip 107.89.86.78
   python demo/unseen_detector_demo.py --skip-model             # no GPU needed
   python demo/unseen_detector_demo.py --true-vendor Bosch      # override label
@@ -32,8 +26,8 @@ Usage (from the repository root):
 Expected resources (see evaluation/REBUTTAL_ADDENDUM.md §1.3):
   ./Meta-Llama-3.1-8B-Instruct/                      (gated HF download)
   evaluation/unseen/llama3/results_v2/final_model/   (released adapter)
-  demo/{DEVICE}/validation_cases.json                (fixed-seed pool)
-  agent/query_db/{local,community,reasoning}/{DEVICE}_*.json  (evidence cache)
+  demo/ALARM/validation_cases.json                   (fixed-seed pool)
+  agent/query_db/{local,community,reasoning}/ALARM_*.json     (evidence cache)
 """
 import argparse
 import hashlib
@@ -56,9 +50,10 @@ VENDOR_FIELDS = ["cert-issuers", "cert-subjects", "cert-info", "hw-products",
                  "hw-vendor", "http-tags", "http-info", "http-titles",
                  "sw-products", "sw-vendor"]
 
-# Paper Table 3 dominant vendor per type — the DEFAULT top-3 reference label.
+# Paper Table 3 dominant vendor of ALARM — the DEFAULT top-3 reference label.
 # (The demo pool carries no per-IP vendor label; override with --true-vendor.)
-DOMINANT_VENDOR = {"ALARM": "Bosch", "CONTROLLER": "Schneider Electric"}
+DEVICE = "ALARM"
+DOMINANT_VENDOR = "Bosch"
 
 
 def canon(obj):
@@ -69,16 +64,16 @@ def fingerprint_id(fp):
     return hashlib.sha256(canon(fp).encode()).hexdigest()[:16]
 
 
-def load_cases(device):
-    path = os.path.join(ROOT, "demo", device, "validation_cases.json")
+def load_cases():
+    path = os.path.join(ROOT, "demo", DEVICE, "validation_cases.json")
     return json.load(open(path))
 
 
-def load_evidence(device):
+def load_evidence():
     """Return {fingerprint_id: entry} for each non-empty retrieval level."""
     ev = {}
     for lvl in ("local", "community", "reasoning"):
-        path = os.path.join(QUERY_DB, lvl, f"{device}_{lvl}.json")
+        path = os.path.join(QUERY_DB, lvl, f"{DEVICE}_{lvl}.json")
         if not os.path.exists(path):
             sys.exit(f"missing evidence cache: {path}\n"
                      f"(hf download IoTProber/raw_dataset --repo-type dataset "
@@ -89,13 +84,12 @@ def load_evidence(device):
     return ev
 
 
-def _hint_regen(device):
-    return (f"(no cached entry for this case — {device}'s community/reasoning "
-            f"cache is the disclosed legacy v2 run; regenerate v3 evidence with "
-            f"`python demo/run_fullflow_demo.py --types {device}`)")
+def _hint_regen():
+    return ("(no cached entry for this case — regenerate v3 evidence with "
+            "`python demo/run_fullflow_demo.py --types ALARM`)")
 
 
-def show_evidence(device, case, ev):
+def show_evidence(case, ev):
     fid = fingerprint_id(case["fingerprint"])
     ok = True
 
@@ -108,7 +102,7 @@ def show_evidence(device, case, ev):
                   f"sim={n['similarity_score']:.3f}")
     else:
         ok = False
-        print("   ", _hint_regen(device))
+        print("   ", _hint_regen())
 
     com = ev["community"].get(fid)
     print(f"\n== 2. COMMUNITY retrieval evidence "
@@ -151,7 +145,7 @@ def show_evidence(device, case, ev):
     return ok, (loc, com, rea)
 
 
-def run_detector(device, case, loc, com, rea, args):
+def run_detector(case, loc, com, rea, args):
     print(f"\n== 4. UnseenDeviceDetector (live, "
           f"{'4-bit' if not args.gpu < 0 else 'cpu'}) ==")
     from unseen import UnseenDeviceDetector  # noqa: E402  (agent/unseen.py)
@@ -181,9 +175,9 @@ def run_detector(device, case, loc, com, rea, args):
     return out
 
 
-def evidence_vendor_scores(device, case, com):
+def evidence_vendor_scores(case, com):
     """Count lexicon-vendor mentions across fingerprint + community report."""
-    lex = json.load(open(KNOWN_VENDORS))["known_vendors_by_type"].get(device, [])
+    lex = json.load(open(KNOWN_VENDORS))["known_vendors_by_type"].get(DEVICE, [])
     lex = sorted(lex, key=len, reverse=True)  # longest match first
     scores, sources = {}, {}
 
@@ -207,8 +201,8 @@ def evidence_vendor_scores(device, case, com):
     return scores, sources
 
 
-def ranked_top3(device, detector_out, case, com):
-    scores, sources = evidence_vendor_scores(device, case, com)
+def ranked_top3(detector_out, case, com):
+    scores, sources = evidence_vendor_scores(case, com)
     ranking = []
     if detector_out:
         # For a known vendor the novelty fields are "none" by design; the
@@ -237,10 +231,9 @@ def ranked_top3(device, detector_out, case, com):
 def main():
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--device", choices=["ALARM", "CONTROLLER"], default="ALARM")
-    ap.add_argument("--index", type=int, default=None,
-                    help="case index in the pool (default: the case with the "
-                         "strongest community match — ALARM 32 / CONTROLLER 0)")
+    ap.add_argument("--index", type=int, default=32,
+                    help="case index in the pool (default 32: the case with the "
+                         "strongest ALARM community match)")
     ap.add_argument("--ip", help="select the case by IP instead of --index")
     ap.add_argument("--gpu", type=int, default=0, help="-1 for CPU")
     ap.add_argument("--base-model", default=DEFAULT_BASE)
@@ -252,21 +245,19 @@ def main():
                          f"{DOMINANT_VENDOR})")
     args = ap.parse_args()
 
-    cases = load_cases(args.device)
-    if args.index is None:
-        args.index = 32 if args.device == "ALARM" else 0
+    cases = load_cases()
     case = next((c for c in cases if c.get("ip") == args.ip), None) if args.ip \
         else cases[args.index]
-    ref = args.true_vendor or DOMINANT_VENDOR[args.device]
+    ref = args.true_vendor or DOMINANT_VENDOR
     ref_note = "override" if args.true_vendor else (
-        "dominant vendor of this type, paper Table 3; "
+        "dominant ALARM vendor, paper Table 3; "
         "the pool carries no per-IP vendor label")
-    print(f"device={args.device}  ip={case['ip']}  "
+    print(f"device={DEVICE}  ip={case['ip']}  "
           f"fingerprint_id={fingerprint_id(case['fingerprint'])}")
     print(f"top-3 reference label: {ref!r} ({ref_note})")
 
-    ev = load_evidence(args.device)
-    ok, (loc, com, rea) = show_evidence(args.device, case, ev)
+    ev = load_evidence()
+    ok, (loc, com, rea) = show_evidence(case, ev)
 
     det_out = None
     if args.skip_model:
@@ -276,9 +267,9 @@ def main():
               "this case — the detector consumes reasoning-path output; "
               "see the hint in section 3) ==")
     else:
-        det_out = run_detector(args.device, case, loc, com, rea, args)
+        det_out = run_detector(case, loc, com, rea, args)
 
-    ranking = ranked_top3(args.device, det_out, case, com)
+    ranking = ranked_top3(det_out, case, com)
     print("\n== 5. RANKED vendor predictions (top-3) ==")
     for i, (v, s, src) in enumerate(ranking, 1):
         print(f"   {i}. {v:<20} score={s:<8} source={src}")

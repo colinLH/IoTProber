@@ -248,11 +248,11 @@ SHA-256 of every input. Larger regeneration (full pipeline, graph, adapter)
 uses the run books in `evaluation/README.md` (§2.4–2.8, §3.2–3.5) and
 `demo/fullflow/README.md`.
 
-### 4.1 Single-file unseen-detector example (ALARM / CONTROLLER)
+### 4.1 Single-file unseen-detector example (ALARM)
 
 `demo/unseen_detector_demo.py` is one directly runnable file that shows, for
-one fixed-seed validation device: the recorded non-empty LOCAL / COMMUNITY /
-REASONING evidence (schema `2026-09-25-v3`), a live 4-bit run of
+one fixed-seed ALARM validation device: the recorded non-empty LOCAL /
+COMMUNITY / REASONING evidence (schema `2026-09-25-v3`), a live 4-bit run of
 `UnseenDeviceDetector` (Llama-3.1-8B + the released LoRA adapter, no API keys
 needed), and a ranked top-3 vendor prediction — rank 1 from the detector's
 `classified_vendor`, ranks 2–3 evidence-scored from the fingerprint and the
@@ -261,9 +261,7 @@ followed by an explicit top-3 check. Verified reference output (ALARM,
 ip 107.89.86.78): evidence non-empty at all three levels, detector classifies
 ALARM / Bosch (confidence 1.0, 1.8 s), top-3 = Bosch (detector), Cradlepoint,
 Axis → top-3 HIT at rank 1. `--skip-model` runs the evidence + ranking part
-on CPU only; CONTROLLER degrades to local evidence because its community /
-reasoning cache is the disclosed legacy v2 run (the script prints the
-regeneration command).
+on CPU only.
 
 ```bash
 python demo/unseen_detector_demo.py              # ALARM showcase (1 GPU, ~2 min)
